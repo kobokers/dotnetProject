@@ -1,0 +1,88 @@
+﻿@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    ViewData["Title"] = "Home";
+}
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var query = Context.Request.Query["search"].FirstOrDefault() ?? "";
+
+    var friendIds = await AppDbContext.FriendRequests
+        .Where(f => f.Status == FriendRequestStatus.Accepted &&
+            (f.SenderId == currentUser!.Id || f.ReceiverId == currentUser!.Id))
+        .Select(f => f.SenderId == currentUser!.Id ? f.ReceiverId : f.SenderId)
+        .ToListAsync();
+
+    var users = UserManager.Users
+        .Where(u => u.Id != currentUser!.Id && !friendIds.Contains(u.Id));
+
+    if (!string.IsNullOrWhiteSpace(query))
+        users = users.Where(u => u.DisplayName!.Contains(query) || u.UserName!.Contains(query));
+
+    var userList = await users.Take(20).ToListAsync();
+
+    <div class="feed-header">
+        <h1 class="feed-title">Discover People</h1>
+    </div>
+
+    <form method="get" class="mb-4">
+        <div class="flex gap-2">
+            <input name="search" class="search-page-input" type="text" placeholder="Search users..." value="@query" />
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+            @if (!string.IsNullOrEmpty(query))
+            {
+                <a asp-action="Index" class="btn btn-outline"><i class="bi bi-x"></i></a>
+            }
+        </div>
+    </form>
+
+    @if (!userList.Any())
+    {
+        <div class="card-empty">
+            <i class="bi bi-people"></i>
+            @if (!string.IsNullOrEmpty(query))
+            {
+                <p>No users found matching "@query"</p>
+            }
+            else
+            {
+                <p>No other users found. Invite your friends to join!</p>
+            }
+        </div>
+    }
+
+    <div class="friend-grid">
+        @foreach (var user in userList)
+        {
+            <div class="friend-card">
+                @if (!string.IsNullOrEmpty(user.ProfilePhoto))
+                {
+                    <img src="@user.ProfilePhoto" alt="" class="avatar avatar-md" style="margin:0 auto;" />
+                }
+                else
+                {
+                    <div class="avatar-circle avatar-md" style="font-size:18px;margin:0 auto;">@(user.DisplayName?[0] ?? '?')</div>
+                }
+                <a asp-controller="Account" asp-action="Profile" asp-route-id="@user.Id" class="friend-card-name">@user.DisplayName</a>
+                <div class="friend-card-sub">@(user.Location ?? "New member")</div>
+                <form method="post" asp-controller="Friend" asp-action="SendRequest" asp-route-receiverId="@user.Id">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Add Friend</button>
+                </form>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="landing">
+        <div class="landing-logo">F.R.I.E.N.D.S</div>
+        <div class="landing-subtitle">Connect, share, and stay in touch with the people you care about.</div>
+        <div class="landing-actions">
+            <a asp-controller="Account" asp-action="Register" class="btn btn-primary" style="padding:12px 32px;font-size:16px;">Get Started</a>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-outline" style="padding:12px 32px;font-size:16px;">Log in</a>
+        </div>
+    </div>
+}

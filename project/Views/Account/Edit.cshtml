@@ -1,0 +1,53 @@
+@model ApplicationUser
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="feed-header">
+    <h1 class="feed-title">Edit Profile</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div class="text-center mb-4">
+                @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
+                {
+                    <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-lg avatar-active mb-2" />
+                }
+                else
+                {
+                    <div class="avatar-circle avatar-lg avatar-active" style="font-size:32px;margin:0 auto 8px;">@(Model.DisplayName?[0] ?? '?')</div>
+                }
+                <div class="file-upload-wrapper" style="justify-content:center;">
+                    <label class="file-upload-btn">
+                        <i class="bi bi-camera"></i> Change Photo
+                        <input name="profilePhoto" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
+                    </label>
+                    <span class="file-upload-name">No file chosen</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Display Name</label>
+                <input name="displayName" class="form-input" value="@Model.DisplayName" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Bio</label>
+                <textarea name="bio" class="form-input" rows="3">@Model.Bio</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input name="location" class="form-input" value="@Model.Location" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+        </form>
+
+        <form method="post" asp-action="DeleteAccount" class="mt-4" onsubmit="return confirm('Are you sure you want to delete your account? This cannot be undone.');">
+            <button type="submit" class="btn btn-danger btn-block">Delete Account</button>
+        </form>
+
+        <div class="auth-link">
+            <a asp-action="Profile">Back to Profile</a>
+        </div>
+    </div>
+</div>

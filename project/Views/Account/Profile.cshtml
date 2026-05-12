@@ -1,0 +1,87 @@
+@model ApplicationUser
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    ViewData["Title"] = Model.DisplayName ?? Model.UserName;
+    var postCount = await AppDbContext.Posts.CountAsync(p => p.UserId == Model.Id);
+    var friendCount = await AppDbContext.FriendRequests.CountAsync(f =>
+        f.Status == FriendRequestStatus.Accepted &&
+        (f.SenderId == Model.Id || f.ReceiverId == Model.Id));
+    var posts = await AppDbContext.Posts
+        .Where(p => p.UserId == Model.Id)
+        .OrderByDescending(p => p.CreatedAt)
+        .Take(9)
+        .ToListAsync();
+
+    var isOwnProfile = false;
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        isOwnProfile = currentUser?.Id == Model.Id;
+    }
+}
+
+<div class="profile-header">
+    @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
+    {
+        <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-xl avatar-active" />
+    }
+    else
+    {
+        <div class="avatar-circle avatar-xl avatar-active" style="font-size:56px;margin:0 auto;">@(Model.DisplayName?[0] ?? '?')</div>
+    }
+    <h1 class="profile-name">@Model.DisplayName</h1>
+    <div class="profile-username">@@@Model.UserName</div>
+    @if (!string.IsNullOrEmpty(Model.Bio))
+    {
+        <div class="profile-bio">@Model.Bio</div>
+    }
+    @if (!string.IsNullOrEmpty(Model.Location))
+    {
+        <div class="profile-location"><i class="bi bi-geo-alt"></i> @Model.Location</div>
+    }
+    <div class="profile-stats">
+        <div class="profile-stat">
+            <span class="profile-stat-value">@postCount</span>
+            <span class="profile-stat-label">Posts</span>
+        </div>
+        <div class="profile-stat">
+            <span class="profile-stat-value">@friendCount</span>
+            <span class="profile-stat-label">Friends</span>
+        </div>
+    </div>
+    @if (isOwnProfile)
+    {
+        <a asp-action="Edit" class="btn btn-primary">Edit Profile</a>
+    }
+</div>
+
+@if (posts.Any())
+{
+    <div class="profile-posts-grid">
+        @foreach (var post in posts)
+        {
+            <a asp-controller="Post" asp-action="Details" asp-route-id="@post.PostId">
+                @if (!string.IsNullOrEmpty(post.ImageUrl))
+                {
+                    <img src="@post.ImageUrl" alt="Post" class="profile-post-thumb" />
+                }
+                else
+                {
+                    <div class="profile-post-thumb-placeholder">
+                        <i class="bi bi-file-text" style="font-size:24px;"></i>
+                    </div>
+                }
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="card-empty">
+        <i class="bi bi-camera"></i>
+        <p>No posts yet</p>
+    </div>
+}
+
+@inject UserManager<ApplicationUser> UserManager

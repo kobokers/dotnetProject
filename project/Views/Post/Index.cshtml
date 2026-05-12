@@ -1,0 +1,10 @@
+@{
+    ViewData["Title"] = "Feed";
+}
+
+<div class="feed-header">
+    <h1 class="feed-title">Home</h1>
+</div>
+
+@await Html.PartialAsync("_Stories", ViewBag.Stories as List<Story>)
+@await Html.PartialAsync("_Feed")

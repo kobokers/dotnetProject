@@ -1,0 +1,80 @@
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var friendIds = new List<string>();
+    if (currentUser != null)
+    {
+        friendIds = await AppDbContext.FriendRequests
+            .Where(f => f.Status == FriendRequestStatus.Accepted &&
+                (f.SenderId == currentUser.Id || f.ReceiverId == currentUser.Id))
+            .Select(f => f.SenderId == currentUser.Id ? f.ReceiverId : f.SenderId)
+            .ToListAsync();
+        friendIds.Add(currentUser.Id);
+    }
+
+    var suggestedUsers = await UserManager.Users
+        .Where(u => !friendIds.Contains(u.Id))
+        .OrderBy(u => Guid.NewGuid())
+        .Take(3)
+        .ToListAsync();
+}
+
+<div class="right-panel-section">
+    <form asp-controller="Account" asp-action="Search" method="get">
+        <input name="query" class="search-input" type="text" placeholder="Search..." />
+    </form>
+</div>
+
+<div class="right-panel-section">
+    <div class="filter-tabs">
+        <button class="filter-tab active">All</button>
+        <button class="filter-tab">Popular</button>
+        <button class="filter-tab">Account</button>
+    </div>
+</div>
+
+<div class="right-panel-section">
+    <div class="right-panel-title">Suggested for you</div>
+    @if (suggestedUsers.Any())
+    {
+        foreach (var user in suggestedUsers)
+        {
+            <div class="suggested-user">
+                @if (!string.IsNullOrEmpty(user.ProfilePhoto))
+                {
+                    <img src="@user.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                }
+                else
+                {
+                    <div class="avatar-circle avatar-sm" style="font-size:12px;">@(user.DisplayName?[0] ?? '?')</div>
+                }
+                <div class="suggested-user-info">
+                    <div class="suggested-user-name">
+                        <a asp-controller="Account" asp-action="Profile" asp-route-id="@user.Id">@user.DisplayName</a>
+                    </div>
+                    <div class="suggested-user-sub">@(user.Location ?? "New member")</div>
+                </div>
+                <form method="post" asp-controller="Friend" asp-action="SendRequest" asp-route-receiverId="@user.Id">
+                    <button type="submit" class="suggested-follow-btn"><i class="bi bi-person-plus"></i></button>
+                </form>
+            </div>
+        }
+    }
+    else
+    {
+        <p style="font-size:13px;color:var(--text-secondary);">No suggestions right now.</p>
+    }
+</div>
+
+<div class="right-panel-section">
+    <div class="right-panel-title">Trending Topics</div>
+    <div>
+        <a href="#" class="hashtag-pill">#friends</a>
+        <a href="#" class="hashtag-pill">#social</a>
+        <a href="#" class="hashtag-pill">#dotnet</a>
+        <a href="#" class="hashtag-pill">#coding</a>
+        <a href="#" class="hashtag-pill">#community</a>
+    </div>
+</div>

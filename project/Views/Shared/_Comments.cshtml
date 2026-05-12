@@ -1,0 +1,49 @@
+@model Post
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var currentUserId = User.Identity?.IsAuthenticated == true ? (await UserManager.GetUserAsync(User))?.Id : null;
+}
+
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <form method="post" asp-controller="Comment" asp-action="Create" class="comment-input">
+        <input type="hidden" name="postId" value="@Model.PostId" />
+        <input name="content" class="comment-input-field" placeholder="Write a comment..." required />
+        <button type="submit" class="comment-submit">Post</button>
+    </form>
+}
+
+@if (!Model.Comments.Any())
+{
+    <p style="font-size:13px;color:var(--text-secondary);padding:12px 0;text-align:center;">No comments yet.</p>
+}
+
+@foreach (var comment in Model.Comments.OrderBy(c => c.CreatedAt))
+{
+    <div class="comment-item">
+        @if (!string.IsNullOrEmpty(comment.User.ProfilePhoto))
+        {
+            <img src="@comment.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
+        }
+        else
+        {
+            <div class="avatar-circle avatar-sm" style="font-size:12px;">@(comment.User.DisplayName?[0] ?? '?')</div>
+        }
+        <div class="comment-content">
+            <a asp-controller="Account" asp-action="Profile" asp-route-id="@comment.UserId" class="comment-author">@comment.User.DisplayName</a>
+            <div class="comment-text">@comment.Content</div>
+            <div class="comment-time">@comment.CreatedAt.ToString("MMM dd, HH:mm")</div>
+        </div>
+        @if (comment.UserId == currentUserId)
+        {
+            <div class="comment-actions">
+                <a asp-controller="Comment" asp-action="Edit" asp-route-id="@comment.CommentId" class="btn-icon" title="Edit">
+                    <i class="bi bi-pencil" style="font-size:14px;"></i>
+                </a>
+                <form method="post" asp-controller="Comment" asp-action="Delete" asp-route-id="@comment.CommentId" class="d-inline" onsubmit="return confirm('Delete this comment?');">
+                    <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>
+                </form>
+            </div>
+        }
+    </div>
+}

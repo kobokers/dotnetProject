@@ -1,0 +1,19 @@
+@model Comment
+@{
+    ViewData["Title"] = "Edit Comment";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="mb-4">Edit Comment</h2>
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea name="content" class="form-control" rows="3" required>@Model.Content</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Save</button>
+            <a asp-controller="Post" asp-action="Details" asp-route-id="@Model.PostId" class="btn btn-outline-secondary w-100 mt-2">Cancel</a>
+        </form>
+    </div>
+</div>

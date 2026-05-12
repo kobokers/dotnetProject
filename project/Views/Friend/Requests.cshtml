@@ -1,0 +1,107 @@
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    ViewData["Title"] = "Notifications";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var tab = ViewBag.Tab as string ?? "received";
+
+    var receivedRequests = await AppDbContext.FriendRequests
+        .Where(f => f.ReceiverId == currentUser!.Id && f.Status == FriendRequestStatus.Pending)
+        .Include(f => f.Sender)
+        .ToListAsync();
+
+    var sentRequests = await AppDbContext.FriendRequests
+        .Where(f => f.SenderId == currentUser!.Id && f.Status == FriendRequestStatus.Pending)
+        .Include(f => f.Receiver)
+        .ToListAsync();
+
+    var acceptedRequests = await AppDbContext.FriendRequests
+        .Where(f => f.Status == FriendRequestStatus.Accepted &&
+            (f.SenderId == currentUser!.Id || f.ReceiverId == currentUser!.Id))
+        .Include(f => f.Sender)
+        .Include(f => f.Receiver)
+        .OrderByDescending(f => f.CreatedAt)
+        .Take(5)
+        .ToListAsync();
+}
+
+<div class="feed-header">
+    <h1 class="feed-title">Notifications</h1>
+</div>
+
+<div class="request-tabs">
+    <a asp-route-tab="received" class="request-tab @(tab == "received" ? "active" : "")">Received (@receivedRequests.Count)</a>
+    <a asp-route-tab="sent" class="request-tab @(tab == "sent" ? "active" : "")">Sent (@sentRequests.Count)</a>
+</div>
+
+@if (tab == "received")
+{
+    if (!receivedRequests.Any())
+    {
+        <div class="card-empty">
+            <i class="bi bi-bell"></i>
+            <p>No pending requests</p>
+        </div>
+    }
+
+    @foreach (var req in receivedRequests)
+    {
+        <div class="post-card">
+            <div class="flex items-center justify-between" style="gap:12px;">
+                <div class="flex items-center gap-3">
+                    @if (!string.IsNullOrEmpty(req.Sender.ProfilePhoto))
+                    {
+                        <img src="@req.Sender.ProfilePhoto" alt="" class="avatar avatar-md" />
+                    }
+                    else
+                    {
+                        <div class="avatar-circle avatar-md" style="font-size:18px;">@(req.Sender.DisplayName?[0] ?? '?')</div>
+                    }
+                    <div>
+                        <a asp-controller="Account" asp-action="Profile" asp-route-id="@req.SenderId" style="font-weight:600;color:var(--text-primary);">@req.Sender.DisplayName</a>
+                        <div style="font-size:12px;color:var(--text-secondary);">wants to be friends</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <form method="post" asp-action="Accept" asp-route-id="@req.FriendRequestId" class="d-inline">
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check"></i> Accept</button>
+                    </form>
+                    <form method="post" asp-action="Reject" asp-route-id="@req.FriendRequestId" class="d-inline">
+                        <button type="submit" class="btn btn-outline btn-sm"><i class="bi bi-x"></i> Reject</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}
+else if (tab == "sent")
+{
+    if (!sentRequests.Any())
+    {
+        <div class="card-empty">
+            <i class="bi bi-send"></i>
+            <p>No sent requests</p>
+        </div>
+    }
+
+    @foreach (var req in sentRequests)
+    {
+        <div class="post-card">
+            <div class="flex items-center" style="gap:12px;">
+                @if (!string.IsNullOrEmpty(req.Receiver.ProfilePhoto))
+                {
+                    <img src="@req.Receiver.ProfilePhoto" alt="" class="avatar avatar-md" />
+                }
+                else
+                {
+                    <div class="avatar-circle avatar-md" style="font-size:18px;">@(req.Receiver.DisplayName?[0] ?? '?')</div>
+                }
+                <div>
+                    <a asp-controller="Account" asp-action="Profile" asp-route-id="@req.ReceiverId" style="font-weight:600;color:var(--text-primary);">@req.Receiver.DisplayName</a>
+                    <div style="font-size:12px;color:var(--text-secondary);">Request sent @req.CreatedAt.ToString("MMM dd")</div>
+                </div>
+            </div>
+        </div>
+    }
+}

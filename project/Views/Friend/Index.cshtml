@@ -1,0 +1,54 @@
+@model List<FriendRequest>
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Friends";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var currentUserId = currentUser?.Id;
+}
+
+<div class="feed-header">
+    <h1 class="feed-title">Friends</h1>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--accent-text);">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div style="background:var(--accent-soft);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--danger);">@TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card-empty">
+        <i class="bi bi-people"></i>
+        <p>No friends yet. Find people to connect with!</p>
+        <a asp-controller="Account" asp-action="Search" class="btn btn-primary mt-3"><i class="bi bi-search"></i> Find Friends</a>
+    </div>
+}
+
+@if (Model.Any())
+{
+    <div class="friend-grid">
+        @foreach (var friend in Model)
+        {
+            var friendUser = friend.SenderId == currentUserId ? friend.Receiver : friend.Sender;
+            <div class="friend-card">
+                @if (!string.IsNullOrEmpty(friendUser.ProfilePhoto))
+                {
+                    <img src="@friendUser.ProfilePhoto" alt="" class="avatar avatar-md" style="margin:0 auto;" />
+                }
+                else
+                {
+                    <div class="avatar-circle avatar-md" style="font-size:18px;margin:0 auto;">@(friendUser.DisplayName?[0] ?? '?')</div>
+                }
+                <a asp-controller="Account" asp-action="Profile" asp-route-id="@friendUser.Id" class="friend-card-name">@friendUser.DisplayName</a>
+                <div class="friend-card-sub">@@@friendUser.UserName</div>
+                <form method="post" asp-action="Remove" asp-route-friendId="@friendUser.Id" onsubmit="return confirm('Remove @friendUser.DisplayName from your friends?');">
+                    <button type="submit" class="btn btn-outline btn-sm"><i class="bi bi-person-dash"></i> Unfriend</button>
+                </form>
+            </div>
+        }
+    </div>
+}

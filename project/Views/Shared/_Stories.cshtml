@@ -1,0 +1,115 @@
+@model List<Story>
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+}
+
+@if (currentUser != null)
+{
+    var grouped = Model != null
+        ? Model.GroupBy(s => s.UserId).Select(g => g.First()).ToList()
+        : new List<Story>();
+
+    <div class="story-row">
+        <a asp-controller="Story" asp-action="Create" class="story-item" style="text-decoration:none;">
+            <div class="story-ring story-ring-add">
+                <div class="story-inner">
+                    <i class="bi bi-plus-circle"></i>
+                </div>
+            </div>
+            <span class="story-name">Add Story</span>
+        </a>
+
+        @foreach (var story in grouped)
+        {
+            <div class="story-item" style="cursor:pointer;" data-story='@story.StoryId' onclick="openStory(this)">
+                <div class="story-ring">
+                    <div class="story-inner">
+                        @if (!string.IsNullOrEmpty(story.User.ProfilePhoto))
+                        {
+                            <img src="@story.User.ProfilePhoto" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div style="width:100%;height:100%;border-radius:50%;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text-primary);font-size:18px;">
+                                @(story.User.DisplayName?[0] ?? '?')
+                            </div>
+                        }
+                    </div>
+                </div>
+                <span class="story-name">@story.User.DisplayName</span>
+            </div>
+        }
+    </div>
+
+    <!-- Story Viewer Modal -->
+    <div id="storyViewerModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.94);z-index:9999;justify-content:center;align-items:center;" onclick="closeStoryViewer(event)">
+        <div style="position:relative;max-width:420px;width:90%;background:var(--bg-elevated);border-radius:var(--radius-lg);overflow:hidden;" onclick="event.stopPropagation()">
+            <div style="padding:20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-color);">
+                <img id="svUserPhoto" src="" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:none;" />
+                <div id="svUserPhotoFallback" style="width:36px;height:36px;border-radius:50%;background:var(--bg-hover);display:none;align-items:center;justify-content:center;font-weight:700;color:var(--text-primary);font-size:14px;"></div>
+                <div style="flex:1;font-weight:600;font-size:15px;" id="svUserName"></div>
+                <button onclick="document.getElementById('storyViewerModal').style.display='none'" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;"><i class="bi bi-x"></i></button>
+            </div>
+            <div style="padding:24px;text-align:center;">
+                <img id="svStoryImage" src="" alt="" style="max-width:100%;max-height:60vh;border-radius:var(--radius-md);" />
+                <div style="background:var(--bg-hover);border-radius:var(--radius-full);height:4px;margin-top:20px;overflow:hidden;">
+                    <div id="svProgress" style="width:0%;height:100%;background:var(--accent);border-radius:var(--radius-full);"></div>
+                </div>
+            </div>
+            <a id="svProfileLink" href="#" style="display:block;padding:12px;text-align:center;border-top:1px solid var(--border-color);color:var(--accent);font-weight:600;font-size:14px;text-decoration:none;">View Profile <i class="bi bi-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <script>
+        var storyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(s => new {
+            id = s.StoryId,
+            userId = s.UserId,
+            imageUrl = s.ImageUrl,
+            displayName = s.User.DisplayName ?? s.User.UserName,
+            profilePhoto = s.User.ProfilePhoto ?? ""
+        }).ToList()));
+
+        var svTimer;
+        function openStory(el) {
+            var storyId = parseInt(el.getAttribute('data-story'));
+            var data = storyData.find(function(s) { return s.id === storyId; });
+            if (!data) return;
+
+            clearTimeout(svTimer);
+            var modal = document.getElementById('storyViewerModal');
+            document.getElementById('svUserName').textContent = data.displayName;
+            document.getElementById('svStoryImage').src = data.imageUrl;
+            document.getElementById('svProfileLink').href = '/Account/Profile/' + data.userId;
+
+            var img = document.getElementById('svUserPhoto');
+            var fb = document.getElementById('svUserPhotoFallback');
+            if (data.profilePhoto) {
+                img.src = data.profilePhoto;
+                img.style.display = 'block';
+                fb.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                fb.style.display = 'flex';
+                fb.textContent = data.displayName.charAt(0).toUpperCase();
+            }
+
+            modal.style.display = 'flex';
+            var p = document.getElementById('svProgress');
+            p.style.transition = 'none';
+            p.style.width = '0%';
+            setTimeout(function() {
+                p.style.transition = 'width 5s linear';
+                p.style.width = '100%';
+            }, 50);
+            svTimer = setTimeout(function() { modal.style.display = 'none'; }, 5100);
+        }
+
+        function closeStoryViewer(e) {
+            if (e.target === e.currentTarget) {
+                clearTimeout(svTimer);
+                document.getElementById('storyViewerModal').style.display = 'none';
+            }
+        }
+    </script>
+}

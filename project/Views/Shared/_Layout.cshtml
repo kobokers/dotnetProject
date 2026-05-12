@@ -1,0 +1,120 @@
+﻿@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppDbContext
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    ApplicationUser? currentUser = null;
+    int pendingCount = 0;
+
+    if (isAuthenticated)
+    {
+        currentUser = await UserManager.GetUserAsync(User);
+        if (currentUser != null)
+        {
+            pendingCount = await AppDbContext.FriendRequests
+                .CountAsync(f => f.ReceiverId == currentUser.Id && f.Status == FriendRequestStatus.Pending);
+        }
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - F.R.I.E.N.D.S</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="@(isAuthenticated ? "app-authenticated" : "")">
+    <div class="app-container">
+        @if (isAuthenticated)
+        {
+            <aside class="sidebar">
+                <a asp-controller="Post" asp-action="Index" class="sidebar-logo">F.R.I.E.N.D.S</a>
+                <nav class="sidebar-nav">
+                    <a asp-controller="Post" asp-action="Index" class="sidebar-nav-item active-check" data-active="Post,Index">
+                        <i class="bi bi-house-fill"></i><span>Home</span>
+                    </a>
+                    <a asp-controller="Account" asp-action="Search" class="sidebar-nav-item active-check" data-active="Account,Search">
+                        <i class="bi bi-search"></i><span>Search</span>
+                    </a>
+                    <a asp-controller="Post" asp-action="Index" class="sidebar-nav-item active-check" data-active="Post,Index">
+                        <i class="bi bi-compass"></i><span>Explore</span>
+                    </a>
+                    <a asp-controller="Friend" asp-action="Requests" class="sidebar-nav-item active-check" data-active="Friend,Requests">
+                        <i class="bi bi-bell"></i><span>Notifications</span>
+                        @if (pendingCount > 0)
+                        {
+                            <span class="notification-badge">@pendingCount</span>
+                        }
+                    </a>
+                    <a href="#" class="sidebar-nav-item">
+                        <i class="bi bi-chat"></i><span>Messages</span>
+                    </a>
+                    <a asp-controller="Account" asp-action="Profile" class="sidebar-nav-item active-check" data-active="Account,Profile">
+                        <i class="bi bi-person-circle"></i><span>Profile</span>
+                    </a>
+                    <a asp-controller="Post" asp-action="Create" class="sidebar-create-btn">
+                        <i class="bi bi-plus-square"></i><span>Create Post</span>
+                    </a>
+                </nav>
+                <div class="sidebar-bottom">
+                    <div class="sidebar-user">
+                        @if (!string.IsNullOrEmpty(currentUser?.ProfilePhoto))
+                        {
+                            <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                        }
+                        else
+                        {
+                            <div class="avatar-circle avatar-sm" style="font-size:14px;">
+                                @(currentUser?.DisplayName?[0] ?? '?')
+                            </div>
+                        }
+                        <div class="sidebar-user-info">
+                            <div class="sidebar-user-name">@currentUser?.DisplayName</div>
+                            <div class="sidebar-user-sub">@@@currentUser?.UserName</div>
+                        </div>
+                        <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
+                            <button type="submit" class="btn-icon" title="Logout">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+        }
+
+        <main class="feed">
+            <div class="feed-content">
+                @RenderBody()
+            </div>
+        </main>
+
+        @if (isAuthenticated)
+        {
+            <aside class="right-panel">
+                <partial name="_RightPanel" />
+            </aside>
+        }
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        document.querySelectorAll('.active-check').forEach(function(el) {
+            var data = el.getAttribute('data-active').split(',');
+            var controller = data[0];
+            var action = data[1];
+            var path = window.location.pathname.toLowerCase();
+            if (path.includes('/' + controller.toLowerCase() + '/' + action.toLowerCase()) ||
+                (path.endsWith('/' + controller.toLowerCase()) && action === 'Index')) {
+                el.classList.add('active');
+            }
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

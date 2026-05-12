@@ -1,0 +1,93 @@
+@inject ApplicationDbContext AppDbContext
+@inject UserManager<ApplicationUser> UserManager
+@using Microsoft.EntityFrameworkCore
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var currentUserId = currentUser?.Id;
+
+    var posts = await AppDbContext.Posts
+        .Include(p => p.User)
+        .Include(p => p.Likes)
+        .Include(p => p.Comments)
+        .OrderByDescending(p => p.CreatedAt)
+        .ToListAsync();
+
+    var likedPostIds = new HashSet<int>();
+    if (currentUser != null)
+    {
+        likedPostIds = (await AppDbContext.Likes
+            .Where(l => l.UserId == currentUser.Id)
+            .Select(l => l.PostId)
+            .ToListAsync()).ToHashSet();
+    }
+}
+
+@if (!posts.Any())
+{
+    <div class="card-empty">
+        <i class="bi bi-newspaper"></i>
+        <p>No posts yet. Be the first to share something!</p>
+    </div>
+}
+
+@foreach (var post in posts)
+{
+    var likeCount = post.Likes?.Count ?? await AppDbContext.Likes.CountAsync(l => l.PostId == post.PostId);
+    var commentCount = post.Comments?.Count ?? await AppDbContext.Comments.CountAsync(c => c.PostId == post.PostId);
+    var isLiked = likedPostIds.Contains(post.PostId);
+
+    <div class="post-card">
+        <div class="post-card-header">
+            @if (!string.IsNullOrEmpty(post.User.ProfilePhoto))
+            {
+                <img src="@post.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
+            }
+            else
+            {
+                <div class="avatar-circle avatar-sm" style="font-size:14px;">@(post.User.DisplayName?[0] ?? '?')</div>
+            }
+            <div class="post-card-author">
+                <a asp-controller="Account" asp-action="Profile" asp-route-id="@post.UserId">@post.User.DisplayName</a>
+                <div class="post-card-time">@post.CreatedAt.ToString("MMM dd, yyyy")</div>
+            </div>
+            @if (post.UserId == currentUserId)
+            {
+                <div class="flex gap-2">
+                    <a asp-controller="Post" asp-action="Edit" asp-route-id="@post.PostId" class="btn-icon" title="Edit"><i class="bi bi-pencil"></i></a>
+                    <form method="post" asp-controller="Post" asp-action="Delete" asp-route-id="@post.PostId" class="d-inline" onsubmit="return confirm('Delete this post?');">
+                        <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="color:var(--danger);"></i></button>
+                    </form>
+                </div>
+            }
+        </div>
+
+        <div class="post-card-content">@post.Content</div>
+
+        @if (!string.IsNullOrEmpty(post.ImageUrl))
+        {
+            <img src="@post.ImageUrl" alt="Post image" class="post-card-image" />
+        }
+
+        <div class="post-card-stats">
+            <span><i class="bi bi-heart" style="color:var(--accent);"></i> @likeCount</span>
+            <span><i class="bi bi-chat-dots"></i> @commentCount Comments</span>
+        </div>
+
+        <div class="post-card-actions">
+            @if (currentUser != null)
+            {
+                <form method="post" asp-controller="Post" asp-action="ToggleLike" asp-route-postId="@post.PostId" style="flex:1;">
+                    <button type="submit" class="post-action-btn @(isLiked ? "liked" : "")">
+                        <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")"></i> Like
+                    </button>
+                </form>
+            }
+            <a asp-controller="Post" asp-action="Details" asp-route-id="@post.PostId" class="post-action-btn">
+                <i class="bi bi-chat-dots"></i> Comment
+            </a>
+            <button class="post-action-btn" onclick="alert('Share feature coming soon!')">
+                <i class="bi bi-send"></i> Share
+            </button>
+        </div>
+    </div>
+}

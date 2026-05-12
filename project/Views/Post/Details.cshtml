@@ -1,0 +1,56 @@
+@model Post
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    ViewData["Title"] = "Post";
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var currentUserId = currentUser?.Id;
+    var likeCount = await AppDbContext.Likes.CountAsync(l => l.PostId == Model.PostId);
+    var isLiked = currentUser != null && await AppDbContext.Likes.AnyAsync(l => l.PostId == Model.PostId && l.UserId == currentUser.Id);
+}
+
+<div class="post-card">
+    <div class="post-card-header">
+        @if (!string.IsNullOrEmpty(Model.User.ProfilePhoto))
+        {
+            <img src="@Model.User.ProfilePhoto" alt="" class="avatar avatar-md" />
+        }
+        else
+        {
+            <div class="avatar-circle avatar-md" style="font-size:18px;">@(Model.User.DisplayName?[0] ?? '?')</div>
+        }
+        <div class="post-card-author">
+            <a asp-controller="Account" asp-action="Profile" asp-route-id="@Model.UserId" style="font-size:16px;">@Model.User.DisplayName</a>
+            <div class="post-card-time">@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
+        </div>
+        @if (Model.UserId == currentUserId)
+        {
+            <div class="flex gap-2">
+                <a asp-action="Edit" asp-route-id="@Model.PostId" class="btn-icon" title="Edit"><i class="bi bi-pencil"></i></a>
+                <form method="post" asp-action="Delete" asp-route-id="@Model.PostId" class="d-inline" onsubmit="return confirm('Delete this post?');">
+                    <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="color:var(--danger);"></i></button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <div class="post-card-content" style="font-size:16px;">@Model.Content</div>
+
+    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        <img src="@Model.ImageUrl" alt="Post image" class="post-card-image" />
+    }
+
+    <div class="post-card-stats">
+        <span><i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")" style="color:var(--accent);"></i> @likeCount likes</span>
+        <span><i class="bi bi-chat-dots"></i> @Model.Comments.Count comments</span>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body" style="padding:16px;">
+        <h4 style="font-size:15px;font-weight:600;margin:0 0 8px;">Comments</h4>
+        <partial name="_Comments" model="Model" />
+    </div>
+</div>

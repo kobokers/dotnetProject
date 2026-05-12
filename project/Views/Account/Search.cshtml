@@ -1,0 +1,85 @@
+@model List<ApplicationUser>
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    ViewData["Title"] = "Search";
+    var query = ViewBag.Query as string ?? "";
+
+    var currentUser = await UserManager.GetUserAsync(User);
+    var friendIds = new HashSet<string>();
+    var pendingIds = new HashSet<string>();
+    if (currentUser != null)
+    {
+        friendIds = (await AppDbContext.FriendRequests
+            .Where(f => f.Status == FriendRequestStatus.Accepted &&
+                (f.SenderId == currentUser.Id || f.ReceiverId == currentUser.Id))
+            .Select(f => f.SenderId == currentUser.Id ? f.ReceiverId : f.SenderId)
+            .ToListAsync()).ToHashSet();
+
+        pendingIds = (await AppDbContext.FriendRequests
+            .Where(f => f.Status == FriendRequestStatus.Pending &&
+                (f.SenderId == currentUser.Id || f.ReceiverId == currentUser.Id))
+            .Select(f => f.SenderId == currentUser.Id ? f.ReceiverId : f.SenderId)
+            .ToListAsync()).ToHashSet();
+    }
+}
+
+<div class="feed-header">
+    <h1 class="feed-title">Search</h1>
+</div>
+
+<form method="get" class="mb-4">
+    <div class="flex gap-2">
+        <input name="query" class="search-page-input" type="text" placeholder="Search users..." value="@query" />
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
+    </div>
+</form>
+
+@if (!string.IsNullOrEmpty(query) && !Model.Any())
+{
+    <div class="card-empty">
+        <i class="bi bi-search"></i>
+        <p>No users found matching "@query"</p>
+    </div>
+}
+
+@if (Model.Any())
+{
+    <div class="card">
+        <div class="card-body" style="padding:8px;">
+            @foreach (var user in Model)
+            {
+                <div class="search-result-item">
+                    @if (!string.IsNullOrEmpty(user.ProfilePhoto))
+                    {
+                        <img src="@user.ProfilePhoto" alt="" class="avatar avatar-md" />
+                    }
+                    else
+                    {
+                        <div class="avatar-circle avatar-md" style="font-size:18px;">@(user.DisplayName?[0] ?? '?')</div>
+                    }
+                    <div class="search-result-info">
+                        <a asp-controller="Account" asp-action="Profile" asp-route-id="@user.Id" class="search-result-name">@user.DisplayName</a>
+                        <div class="search-result-sub">@@@user.UserName@(!string.IsNullOrEmpty(user.Location) ? " · " + user.Location : "")</div>
+                    </div>
+                    @if (friendIds.Contains(user.Id))
+                    {
+                        <span class="btn btn-outline btn-sm" style="pointer-events:none;opacity:0.6;"><i class="bi bi-person-check"></i> Friends</span>
+                    }
+                    else if (pendingIds.Contains(user.Id))
+                    {
+                        <span class="btn btn-outline btn-sm" style="pointer-events:none;opacity:0.6;">Pending</span>
+                    }
+                    else
+                    {
+                        <form method="post" asp-controller="Friend" asp-action="SendRequest" asp-route-receiverId="@user.Id">
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Add</button>
+                        </form>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@inject UserManager<ApplicationUser> UserManager

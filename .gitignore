@@ -491,4 +491,6 @@ $RECYCLE.BIN/
  
 . v s c o d e /  
  p r o j e c t / w w w r o o t / u p l o a d s /  
+ p r o j e c t / w w w r o o t / u p l o a d s / * *  
+ ! p r o j e c t / w w w r o o t / u p l o a d s / * * / . g i t k e e p  
  

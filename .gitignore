@@ -386,10 +386,10 @@ FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+#!.vscode/settings.json
+#!.vscode/tasks.json
+#!.vscode/launch.json
+#!.vscode/extensions.json
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -480,8 +480,14 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+. v s c o d e / 
+ 
+ . v s c o d e / 
+ 
+ F R I E N D S _ * . m d 
+ 
+ . v s c o d e / 
+ 
+ 
 . v s c o d e /  
- . v s c o d e /  
- F R I E N D S _ * . m d  
- . v s c o d e /  
  

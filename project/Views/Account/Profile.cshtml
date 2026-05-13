@@ -21,39 +21,48 @@
     }
 }
 
-<div class="profile-header">
-    @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
-    {
-        <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-xl avatar-active" />
-    }
-    else
-    {
-        <div class="avatar-circle avatar-xl avatar-active" style="font-size:56px;margin:0 auto;">@(Model.DisplayName?[0] ?? '?')</div>
-    }
-    <h1 class="profile-name">@Model.DisplayName</h1>
-    <div class="profile-username">@@@Model.UserName</div>
-    @if (!string.IsNullOrEmpty(Model.Bio))
-    {
-        <div class="profile-bio">@Model.Bio</div>
-    }
-    @if (!string.IsNullOrEmpty(Model.Location))
-    {
-        <div class="profile-location"><i class="bi bi-geo-alt"></i> @Model.Location</div>
-    }
-    <div class="profile-stats">
-        <div class="profile-stat">
-            <span class="profile-stat-value">@postCount</span>
-            <span class="profile-stat-label">Posts</span>
-        </div>
-        <div class="profile-stat">
-            <span class="profile-stat-value">@friendCount</span>
-            <span class="profile-stat-label">Friends</span>
-        </div>
+<div class="profile-card">
+    <div class="profile-banner"></div>
+    <div class="profile-avatar-wrapper">
+        @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
+        {
+            <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-xl" />
+        }
+        else
+        {
+            <div class="avatar-circle avatar-xl" style="font-size:56px;">@(Model.DisplayName?[0] ?? '?')</div>
+        }
     </div>
-    @if (isOwnProfile)
-    {
-        <a asp-action="Edit" class="btn btn-primary">Edit Profile</a>
-    }
+    <div class="profile-info">
+        <h1 class="profile-name">@Model.DisplayName</h1>
+        <div class="profile-username">@@@Model.UserName</div>
+        <div class="profile-stats">
+            <div class="profile-stat">
+                <span class="profile-stat-value">@postCount</span>
+                <span class="profile-stat-label">Posts</span>
+            </div>
+            <div class="profile-stat">
+                <span class="profile-stat-value">@friendCount</span>
+                <span class="profile-stat-label">Friends</span>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Bio))
+        {
+            <div class="profile-bio">@Model.Bio</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Location))
+        {
+            <div class="profile-location"><i class="bi bi-geo-alt"></i> @Model.Location</div>
+        }
+        @if (Model.CreatedAt != default)
+        {
+            <div class="profile-joined"><i class="bi bi-calendar3"></i> Joined @Model.CreatedAt.ToLocalTime().ToString("MMMM yyyy")</div>
+        }
+        @if (isOwnProfile)
+        {
+            <a asp-action="Edit" class="btn btn-primary">Edit Profile</a>
+        }
+    </div>
 </div>
 
 @if (posts.Any())
@@ -61,7 +70,7 @@
     <div class="profile-posts-grid">
         @foreach (var post in posts)
         {
-            <a asp-controller="Post" asp-action="Details" asp-route-id="@post.PostId">
+            <a asp-controller="Post" asp-action="Details" asp-route-id="@post.PostId" class="profile-post-item">
                 @if (!string.IsNullOrEmpty(post.ImageUrl))
                 {
                     <img src="@post.ImageUrl" alt="Post" class="profile-post-thumb" />
@@ -72,6 +81,10 @@
                         <i class="bi bi-file-text" style="font-size:24px;"></i>
                     </div>
                 }
+                <div class="profile-post-overlay">
+                    <span><i class="bi bi-heart-fill"></i> @post.Likes?.Count</span>
+                    <span><i class="bi bi-chat-fill"></i> @post.Comments?.Count</span>
+                </div>
             </a>
         }
     </div>

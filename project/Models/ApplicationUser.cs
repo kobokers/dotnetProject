@@ -15,4 +15,6 @@ public class ApplicationUser : IdentityUser
     public ICollection<FriendRequest> ReceivedRequests { get; set; } = new List<FriendRequest>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Story> Stories { get; set; } = new List<Story>();
+    public ICollection<Message> SentMessages { get; set; } = new List<Message>();
+    public ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
 }

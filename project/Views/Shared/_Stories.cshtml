@@ -4,11 +4,11 @@
     var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
 }
 
-@if (currentUser != null)
-{
-    var grouped = Model != null
-        ? Model.GroupBy(s => s.UserId).Select(g => g.First()).ToList()
-        : new List<Story>();
+    @if (currentUser != null)
+    {
+        var grouped = Model != null
+            ? Model.GroupBy(s => s.UserId).Select(g => g.First()).ToList()
+            : new List<Story>();
 
     <div class="story-row">
         <a asp-controller="Story" asp-action="Create" class="story-item" style="text-decoration:none;">
@@ -62,7 +62,7 @@
     </div>
 
     <script>
-        var storyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(s => new {
+        var storyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model ?? new List<Story>()).Select(s => new {
             id = s.StoryId,
             userId = s.UserId,
             imageUrl = s.ImageUrl,

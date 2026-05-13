@@ -77,12 +77,64 @@
 }
 else
 {
-    <div class="landing">
-        <div class="landing-logo">F.R.I.E.N.D.S</div>
-        <div class="landing-subtitle">Connect, share, and stay in touch with the people you care about.</div>
-        <div class="landing-actions">
-            <a asp-controller="Account" asp-action="Register" class="btn btn-primary" style="padding:12px 32px;font-size:16px;">Get Started</a>
-            <a asp-controller="Account" asp-action="Login" class="btn btn-outline" style="padding:12px 32px;font-size:16px;">Log in</a>
+    <div class="landing-split">
+        <div class="landing-bg"></div>
+        <div class="landing-left">
+            <div class="landing-logo-text">F.R.I.E.N.D.S</div>
+            <div class="landing-subtitle">Connect, share, and stay in touch with the people you care about.</div>
+            <div class="landing-actions">
+                <a asp-controller="Account" asp-action="Register" class="btn btn-primary" style="padding:12px 32px;font-size:16px;">Get Started</a>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-outline" style="padding:12px 32px;font-size:16px;">Log in</a>
+            </div>
+        </div>
+        <div class="landing-right">
+            <div class="mockup-phone">
+                <div class="mockup-notch"></div>
+                <div class="mockup-header">F.R.I.E.N.D.S</div>
+                <div class="mockup-statusbar">
+                    <span style="font-weight:600;">9:41</span>
+                    <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                </div>
+                <div class="mockup-feed">
+                    <div class="mockup-post">
+                        <div class="mockup-post-header">
+                            <div class="mockup-avatar"></div>
+                            <div><div class="mockup-line" style="width:80px;"></div><div class="mockup-line" style="width:50px;height:6px;margin-top:4px;"></div></div>
+                        </div>
+                        <div class="mockup-image"></div>
+                        <div class="mockup-actions">
+                            <i class="bi bi-heart"></i><i class="bi bi-chat"></i><i class="bi bi-share"></i>
+                        </div>
+                    </div>
+                    <div class="mockup-post">
+                        <div class="mockup-post-header">
+                            <div class="mockup-avatar" style="background:#ff6b6b;"></div>
+                            <div><div class="mockup-line" style="width:90px;"></div><div class="mockup-line" style="width:60px;height:6px;margin-top:4px;"></div></div>
+                        </div>
+                        <div class="mockup-image" style="height:60px;margin-bottom:8px;"></div>
+                        <div class="mockup-actions">
+                            <i class="bi bi-heart-fill" style="color:#ff6b6b;"></i><i class="bi bi-chat"></i><i class="bi bi-share"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="landing-features">
+        <div class="landing-feature">
+            <div class="landing-feature-icon"><i class="bi bi-camera"></i></div>
+            <div class="landing-feature-title">Share Moments</div>
+            <div class="landing-feature-desc">Post photos and updates to share with friends</div>
+        </div>
+        <div class="landing-feature">
+            <div class="landing-feature-icon"><i class="bi bi-chat-dots"></i></div>
+            <div class="landing-feature-title">Stay Connected</div>
+            <div class="landing-feature-desc">Message friends and keep conversations going</div>
+        </div>
+        <div class="landing-feature">
+            <div class="landing-feature-icon"><i class="bi bi-people"></i></div>
+            <div class="landing-feature-title">Discover People</div>
+            <div class="landing-feature-desc">Find and connect with people you know</div>
         </div>
     </div>
 }

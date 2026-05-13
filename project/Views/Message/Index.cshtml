@@ -1,0 +1,141 @@
+@model List<(ApplicationUser Friend, Message? LastMessage)>
+@{
+    ViewData["Title"] = "Messages";
+}
+
+<div class="messages-layout">
+    <div class="msg-sidebar">
+        <div class="msg-sidebar-header">
+            <h2>Messages</h2>
+        </div>
+        <div class="msg-friend-list">
+            @if (Model.Count == 0)
+            {
+                <div class="msg-empty">No friends yet. Add friends to start chatting.</div>
+            }
+            @foreach (var item in Model)
+            {
+                var preview = item.LastMessage?.Content ?? "No messages yet";
+                if (preview.Length > 40) preview = preview[..40] + "...";
+                <a asp-action="Conversation" asp-route-userId="@item.Friend.Id" class="msg-friend-item">
+                    <div class="msg-friend-avatar">
+                        @if (!string.IsNullOrEmpty(item.Friend.ProfilePhoto))
+                        {
+                            <img src="@item.Friend.ProfilePhoto" alt="" />
+                        }
+                        else
+                        {
+                            <div class="avatar-circle" style="width:44px;height:44px;font-size:16px;">@(item.Friend.DisplayName?[0] ?? '?')</div>
+                        }
+                    </div>
+                    <div class="msg-friend-info">
+                        <div class="msg-friend-name">@item.Friend.DisplayName</div>
+                        <div class="msg-friend-preview">@preview</div>
+                    </div>
+                    @if (item.LastMessage != null)
+                    {
+                        <div class="msg-friend-time">@item.LastMessage.CreatedAt.ToLocalTime().ToString("h:mm tt")</div>
+                    }
+                </a>
+            }
+        </div>
+    </div>
+    <div class="msg-main">
+        <div class="msg-placeholder">
+            <i class="bi bi-chat-dots" style="font-size:48px;color:var(--text-muted);"></i>
+            <h3>Select a conversation to start chatting</h3>
+            <p style="color:var(--text-secondary);">Choose a friend from the list</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.messages-layout {
+    display: flex;
+    height: calc(100vh - 80px);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+.msg-sidebar {
+    width: 320px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+.msg-sidebar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+.msg-sidebar-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+.msg-friend-list {
+    flex: 1;
+    overflow-y: auto;
+}
+.msg-empty {
+    padding: 32px 20px;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 14px;
+}
+.msg-friend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: background 0.15s;
+    cursor: pointer;
+}
+.msg-friend-item:hover {
+    background: var(--bg-hover);
+}
+.msg-friend-avatar img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.msg-friend-info {
+    flex: 1;
+    min-width: 0;
+}
+.msg-friend-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+.msg-friend-preview {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.msg-friend-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.msg-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.msg-placeholder {
+    text-align: center;
+    padding: 40px;
+}
+.msg-placeholder h3 {
+    margin: 16px 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+</style>

@@ -1,0 +1,325 @@
+@model List<Message>
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Conversation";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var currentUserId = currentUser!.Id;
+    var otherUser = ViewBag.OtherUser as ApplicationUser;
+    var conversations = ViewBag.Conversations as List<(ApplicationUser Friend, Message? LastMessage)>;
+}
+
+<div class="messages-layout">
+    <div class="msg-sidebar">
+        <div class="msg-sidebar-header">
+            <h2>Messages</h2>
+        </div>
+        <div class="msg-friend-list">
+            @if (conversations != null && conversations.Count == 0)
+            {
+                <div class="msg-empty">No friends yet.</div>
+            }
+            @if (conversations != null)
+            {
+                @foreach (var item in conversations)
+                {
+                    var preview = item.LastMessage?.Content ?? "No messages yet";
+                    if (preview.Length > 40) preview = preview[..40] + "...";
+                    var isActive = item.Friend.Id == otherUser?.Id;
+                    <a asp-action="Conversation" asp-route-userId="@item.Friend.Id" class="msg-friend-item @(isActive ? "active" : "")">
+                        <div class="msg-friend-avatar">
+                            @if (!string.IsNullOrEmpty(item.Friend.ProfilePhoto))
+                            {
+                                <img src="@item.Friend.ProfilePhoto" alt="" />
+                            }
+                            else
+                            {
+                                <div class="avatar-circle" style="width:44px;height:44px;font-size:16px;">@(item.Friend.DisplayName?[0] ?? '?')</div>
+                            }
+                        </div>
+                        <div class="msg-friend-info">
+                            <div class="msg-friend-name">@item.Friend.DisplayName</div>
+                            <div class="msg-friend-preview">@preview</div>
+                        </div>
+                        @if (item.LastMessage != null)
+                        {
+                            <div class="msg-friend-time">@item.LastMessage.CreatedAt.ToLocalTime().ToString("h:mm tt")</div>
+                        }
+                    </a>
+                }
+            }
+        </div>
+    </div>
+    <div class="msg-conversation">
+        <div class="msg-conv-header">
+            <div class="msg-conv-user">
+                @if (!string.IsNullOrEmpty(otherUser?.ProfilePhoto))
+                {
+                    <img src="@otherUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                }
+                else
+                {
+                    <div class="avatar-circle avatar-sm" style="font-size:14px;">@(otherUser?.DisplayName?[0] ?? '?')</div>
+                }
+                <span class="msg-conv-name">@otherUser?.DisplayName</span>
+            </div>
+        </div>
+
+        <div class="msg-bubbles" id="msgBubbles">
+            @if (Model.Count == 0)
+            {
+                <div class="msg-no-messages">No messages yet. Say hello!</div>
+            }
+            @foreach (var msg in Model)
+            {
+                var isMine = msg.SenderId == currentUserId;
+                <div class="msg-row @(isMine ? "msg-row-mine" : "msg-row-theirs")">
+                    @if (!isMine)
+                    {
+                        <div class="msg-avatar-col">
+                            @if (!string.IsNullOrEmpty(otherUser?.ProfilePhoto))
+                            {
+                                <img src="@otherUser.ProfilePhoto" alt="" class="msg-bubble-avatar" />
+                            }
+                            else
+                            {
+                                <div class="avatar-circle" style="width:32px;height:32px;font-size:12px;">@(otherUser?.DisplayName?[0] ?? '?')</div>
+                            }
+                        </div>
+                    }
+                    <div class="msg-bubble-col">
+                        <div class="msg-bubble @(isMine ? "msg-bubble-mine" : "msg-bubble-theirs")">
+                            @msg.Content
+                        </div>
+                        <div class="msg-time @(isMine ? "msg-time-mine" : "")">
+                            @msg.CreatedAt.ToLocalTime().ToString("MMM d, h:mm tt")
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="msg-input-bar">
+            <form asp-action="Send" method="post" class="msg-input-form">
+                <input type="hidden" name="receiverId" value="@otherUser?.Id" />
+                <input type="text" name="content" class="msg-input" placeholder="Type a message..." autocomplete="off" required />
+                <button type="submit" class="msg-send-btn"><i class="bi bi-send-fill"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var bubbles = document.getElementById('msgBubbles');
+        if (bubbles) {
+            bubbles.scrollTop = bubbles.scrollHeight;
+        }
+    });
+</script>
+
+<style>
+.messages-layout {
+    display: flex;
+    height: calc(100vh - 80px);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+.msg-sidebar {
+    width: 320px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+.msg-sidebar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+.msg-sidebar-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+.msg-friend-list {
+    flex: 1;
+    overflow-y: auto;
+}
+.msg-empty {
+    padding: 32px 20px;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 14px;
+}
+.msg-friend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: background 0.15s;
+    cursor: pointer;
+}
+.msg-friend-item:hover {
+    background: var(--bg-hover);
+}
+.msg-friend-item.active {
+    background: var(--bg-hover);
+    border-left: 3px solid var(--accent);
+}
+.msg-friend-avatar img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.msg-friend-info {
+    flex: 1;
+    min-width: 0;
+}
+.msg-friend-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+.msg-friend-preview {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.msg-friend-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.msg-conversation {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.msg-conv-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+}
+.msg-conv-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.msg-conv-name {
+    font-weight: 600;
+    font-size: 15px;
+}
+.msg-bubbles {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.msg-no-messages {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 40px 0;
+    font-size: 14px;
+}
+.msg-row {
+    display: flex;
+    gap: 8px;
+    max-width: 70%;
+    margin-bottom: 2px;
+}
+.msg-row-mine {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+.msg-row-theirs {
+    align-self: flex-start;
+}
+.msg-avatar-col {
+    flex-shrink: 0;
+    align-self: flex-end;
+}
+.msg-bubble-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.msg-bubble-col {
+    display: flex;
+    flex-direction: column;
+}
+.msg-bubble {
+    padding: 10px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+.msg-bubble-mine {
+    background: var(--accent);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+.msg-bubble-theirs {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+}
+.msg-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 2px 8px 6px;
+}
+.msg-time-mine {
+    text-align: right;
+}
+.msg-input-bar {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+.msg-input-form {
+    display: flex;
+    gap: 10px;
+}
+.msg-input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-color);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+}
+.msg-input:focus {
+    border-color: var(--accent);
+}
+.msg-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.msg-send-btn:hover {
+    background: var(--accent-hover);
+}
+</style>

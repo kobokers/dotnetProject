@@ -20,7 +20,7 @@
         .Where(u => u.Id != currentUser!.Id && !friendIds.Contains(u.Id));
 
     if (!string.IsNullOrWhiteSpace(query))
-        users = users.Where(u => u.DisplayName!.Contains(query) || u.UserName!.Contains(query));
+        users = users.Where(u => u.DisplayName!.Contains(query) || u.UserName!.Contains(query) || u.FriendCode.Contains(query));
 
     var userList = await users.Take(20).ToListAsync();
 

@@ -39,6 +39,16 @@
                 <label class="form-label">Location</label>
                 <input name="location" class="form-input" value="@Model.Location" />
             </div>
+            <div class="form-group">
+                <label class="form-label">Cover Photo</label>
+                <div class="file-upload-wrapper" style="justify-content:flex-start;">
+                    <label class="file-upload-btn">
+                        <i class="bi bi-image"></i> Choose Cover
+                        <input name="coverPhotoFile" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
+                    </label>
+                    <span class="file-upload-name">No file chosen</span>
+                </div>
+            </div>
             <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
         </form>
 

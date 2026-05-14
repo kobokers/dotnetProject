@@ -2,6 +2,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @{
     ViewData["Title"] = "Conversation";
+    Layout = "_Layout";
     var currentUser = await UserManager.GetUserAsync(User);
     var currentUserId = currentUser!.Id;
     var otherUser = ViewBag.OtherUser as ApplicationUser;
@@ -321,5 +322,29 @@
 }
 .msg-send-btn:hover {
     background: var(--accent-hover);
+}
+@@media (max-width: 768px) {
+    .messages-layout {
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        height: auto;
+        min-height: calc(100vh - 140px);
+    }
+    .msg-sidebar {
+        display: none;
+    }
+    .msg-conversation {
+        border-radius: 0;
+    }
+    .msg-conv-header {
+        padding: 12px 16px;
+    }
+    .msg-input-bar {
+        padding: 10px 16px;
+    }
+    .msg-bubbles {
+        padding: 12px 16px;
+    }
 }
 </style>

@@ -7,7 +7,9 @@ public class ApplicationUser : IdentityUser
     public string? DisplayName { get; set; }
     public string? Bio { get; set; }
     public string? ProfilePhoto { get; set; }
+    public string? CoverPhoto { get; set; }
     public string? Location { get; set; }
+    public string FriendCode { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Post> Posts { get; set; } = new List<Post>();

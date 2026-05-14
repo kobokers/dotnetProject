@@ -1,4 +1,7 @@
-﻿@inject UserManager<ApplicationUser> UserManager
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> UserManager
 @inject ApplicationDbContext AppDbContext
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
@@ -10,13 +13,18 @@
         currentUser = await UserManager.GetUserAsync(User);
         if (currentUser != null)
         {
+            if (string.IsNullOrEmpty(currentUser.FriendCode))
+            {
+                currentUser.FriendCode = currentUser.UserName + "#" + new Random().Next(1000, 9999).ToString();
+                await UserManager.UpdateAsync(currentUser);
+            }
             pendingCount = await AppDbContext.FriendRequests
                 .CountAsync(f => f.ReceiverId == currentUser.Id && f.Status == FriendRequestStatus.Pending);
         }
     }
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="oled-dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -60,28 +68,17 @@
                         <i class="bi bi-plus-square"></i><span>Create Post</span>
                     </a>
                 </nav>
-                <div class="sidebar-bottom">
-                    <div class="sidebar-user">
-                        @if (!string.IsNullOrEmpty(currentUser?.ProfilePhoto))
-                        {
-                            <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
-                        }
-                        else
-                        {
-                            <div class="avatar-circle avatar-sm" style="font-size:14px;">
-                                @(currentUser?.DisplayName?[0] ?? '?')
-                            </div>
-                        }
-                        <div class="sidebar-user-info">
-                            <div class="sidebar-user-name">@currentUser?.DisplayName</div>
-                            <div class="sidebar-user-sub">@@@currentUser?.UserName</div>
-                        </div>
-                        <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
-                            <button type="submit" class="btn-icon" title="Logout">
-                                <i class="bi bi-box-arrow-right"></i>
-                            </button>
-                        </form>
+                <div class="sidebar-user">
+                    <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" />
+                    <div class="sidebar-user-info">
+                        <span class="sidebar-username">@currentUser?.UserName</span>
+                        <span class="friend-code" id="friendCode" onclick="copyFriendCode()" title="Click to copy your Friend Code">@currentUser?.FriendCode</span>
                     </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" title="Logout" class="btn btn-link p-0">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </form>
                 </div>
             </aside>
         }
@@ -97,6 +94,23 @@
             <aside class="right-panel">
                 <partial name="_RightPanel" />
             </aside>
+            <nav class="bottom-nav">
+                <a asp-controller="Post" asp-action="Index" class="active-check" data-active="Post,Index">
+                    <i class="bi bi-house-fill"></i><span>Home</span>
+                </a>
+                <a asp-controller="Account" asp-action="Search" class="active-check" data-active="Account,Search">
+                    <i class="bi bi-search"></i><span>Search</span>
+                </a>
+                <a asp-controller="Post" asp-action="Create">
+                    <i class="bi bi-plus-square"></i><span>Create</span>
+                </a>
+                <a asp-controller="Message" asp-action="Index" class="active-check" data-active="Message,Index">
+                    <i class="bi bi-chat"></i><span>Messages</span>
+                </a>
+                <a asp-controller="Account" asp-action="Profile" class="active-check" data-active="Account,Profile">
+                    <i class="bi bi-person-circle"></i><span>Profile</span>
+                </a>
+            </nav>
         }
     </div>
 
@@ -114,7 +128,87 @@
                 el.classList.add('active');
             }
         });
+
+        (function() {
+            var themes = ['oled-dark', 'teal-dark', 'light'];
+            var icons = ['bi-moon-stars', 'bi-palette', 'bi-sun'];
+            var html = document.documentElement;
+            var btn = document.getElementById('themeBtn');
+            if (!btn) return;
+            var saved = localStorage.getItem('friends-theme');
+            if (saved && themes.indexOf(saved) !== -1) {
+                html.setAttribute('data-theme', saved);
+            }
+            function updateIcon() {
+                var idx = themes.indexOf(html.getAttribute('data-theme') || 'oled-dark');
+                btn.innerHTML = '<i class="bi ' + icons[idx] + '"></i>';
+            }
+            updateIcon();
+            btn.addEventListener('click', function() {
+                var current = html.getAttribute('data-theme') || 'oled-dark';
+                var idx = themes.indexOf(current);
+                var next = themes[(idx + 1) % themes.length];
+                html.setAttribute('data-theme', next);
+                localStorage.setItem('friends-theme', next);
+                updateIcon();
+            });
+        })();
+
+        function showToast(message) {
+            var toast = document.getElementById('copyToast');
+            toast.innerText = message;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+            }, 1800);
+        }
+
+        var copyCount = 0;
+
+        function copyFriendCode() {
+            var el = document.getElementById('friendCode');
+            var code = el.innerText;
+
+            if (el.dataset.copying === 'true') return;
+
+            navigator.clipboard.writeText(code);
+            el.dataset.copying = 'true';
+            copyCount++;
+
+            var messages = [
+                { text: 'Copied!', count: 1 },
+                { text: 'Copied again?', count: 2 },
+                { text: 'Okay...', count: 3 },
+                { text: 'Really?', count: 4 },
+                { text: 'Stop it.', count: 5 },
+                { text: 'BRO.', count: 6 },
+                { text: 'You dead.', count: 7 },
+                { text: 'Clown behavior.', count: 8 },
+                { text: 'Bro is cooked.', count: 9 },
+                { text: 'Okay bestie.', count: 10 },
+            ];
+
+            var msg = { text: 'Please stop.' };
+            for (var i = 0; i < messages.length; i++) {
+                if (messages[i].count === copyCount) {
+                    msg = messages[i];
+                    break;
+                }
+            }
+
+            el.innerText = msg.text;
+            showToast(msg.text);
+
+            setTimeout(function() {
+                el.innerText = code;
+                el.dataset.copying = 'false';
+            }, 2000);
+        }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    <div id="copyToast" style="position:fixed;bottom:24px;right:24px;background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:12px;padding:12px 20px;font-size:13px;color:var(--text-primary);opacity:0;transform:translateY(20px);transition:all 0.3s ease;z-index:9999;pointer-events:none;"></div>
 </body>
 </html>

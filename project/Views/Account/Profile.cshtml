@@ -22,7 +22,14 @@
 }
 
 <div class="profile-card">
-    <div class="profile-banner"></div>
+    @if (!string.IsNullOrEmpty(Model.CoverPhoto))
+    {
+        <div class="profile-banner" style="background-image: url('/uploads/profiles/@Model.CoverPhoto'); background-size: cover; background-position: center;"></div>
+    }
+    else
+    {
+        <div class="profile-banner"></div>
+    }
     <div class="profile-avatar-wrapper">
         @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
         {

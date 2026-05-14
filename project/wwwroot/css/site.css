@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-:root {
+:root,
+[data-theme="oled-dark"] {
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
   --bg-elevated: #111111;
@@ -19,14 +20,48 @@
   --danger: #ff4f4f;
   --success: #2ecc71;
   --online: #2ecc71;
+}
 
-  --sidebar-width: 245px;
-  --right-panel-width: 300px;
-  --feed-max-width: 630px;
-  --radius-sm: 4px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-full: 9999px;
+[data-theme="teal-dark"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-elevated: #111111;
+  --bg-hover: #1a1a1a;
+  --border-color: #1f1f1f;
+
+  --accent: #00b894;
+  --accent-hover: #00a381;
+  --accent-soft: #00b89422;
+  --accent-text: #00b894;
+
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --text-muted: #444444;
+
+  --danger: #ff4f4f;
+  --success: #2ecc71;
+  --online: #2ecc71;
+}
+
+[data-theme="light"] {
+  --bg-primary: #fafafa;
+  --bg-secondary: #ffffff;
+  --bg-elevated: #f0f2f5;
+  --bg-hover: #e8eaed;
+  --border-color: #dbdbdb;
+
+  --accent: #ff6b6b;
+  --accent-hover: #ff4f4f;
+  --accent-soft: #ff6b6b22;
+  --accent-text: #ff6b6b;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #737373;
+  --text-muted: #999999;
+
+  --danger: #ff4f4f;
+  --success: #2ecc71;
+  --online: #2ecc71;
 }
 
 *, *::before, *::after {
@@ -53,11 +88,9 @@ body {
 
 /* ─── Sidebar ─── */
 .sidebar {
-  width: var(--sidebar-width);
+  width: 220px;
   min-width: 220px;
-  position: fixed;
-  top: 0;
-  left: 0;
+  flex-shrink: 0;
   height: 100vh;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
@@ -65,7 +98,8 @@ body {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  z-index: 100;
+  position: sticky;
+  top: 0;
 }
 
 .sidebar-logo {
@@ -118,12 +152,14 @@ body {
 
 .sidebar-nav-item.active {
   background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
   border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  margin-left: -16px;
-  padding-left: calc(16px - 3px);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.sidebar-nav-item.active span {
+  color: var(--accent);
 }
 
 .sidebar-nav-item.active i {
@@ -157,43 +193,43 @@ body {
   font-size: 20px;
 }
 
-.sidebar-bottom {
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-color);
-}
-
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.sidebar-user:hover {
-  background: var(--bg-hover);
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .sidebar-user-info {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  min-width: 0;
+  overflow: hidden;
 }
 
-.sidebar-user-name {
-  font-size: 14px;
+.sidebar-username {
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sidebar-user-sub {
-  font-size: 12px;
+.friend-code {
+  font-size: 11px;
   color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+.friend-code:hover {
+  color: var(--accent);
 }
 
 .notification-badge {
@@ -211,20 +247,15 @@ body {
 /* ─── Feed ─── */
 .feed {
   flex: 1;
+  min-width: 0;
   min-height: 100vh;
-}
-
-.app-authenticated .feed {
-  margin-left: var(--sidebar-width);
-  margin-right: var(--right-panel-width);
-}
-
-.app-authenticated .feed-content {
-  max-width: var(--feed-max-width);
+  display: flex;
+  justify-content: center;
 }
 
 .feed-content {
-  margin: 0 auto;
+  width: 100%;
+  max-width: 630px;
   padding: 24px 32px;
 }
 
@@ -240,16 +271,16 @@ body {
 
 /* ─── Right Panel ─── */
 .right-panel {
-  width: var(--right-panel-width);
-  position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  background: var(--bg-secondary);
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  flex-shrink: 0;
   border-left: 1px solid var(--border-color);
-  padding: 24px 20px;
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   overflow-y: auto;
-  z-index: 100;
 }
 
 .right-panel-section {
@@ -1466,10 +1497,6 @@ a:hover {
     display: none;
   }
 
-  .app-authenticated .feed {
-    margin-right: 0;
-  }
-
   .feed-content {
     padding: 24px 16px;
   }
@@ -1477,46 +1504,48 @@ a:hover {
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 64px;
-    min-width: unset;
-    padding: 12px 8px;
-  }
-
-  .sidebar-logo {
-    font-size: 14px;
-    padding: 4px 8px 16px;
-    text-align: center;
-  }
-
-  .sidebar-nav-item span,
-  .sidebar-user-info,
-  .sidebar-create-btn span,
-  .notification-badge {
     display: none;
   }
 
-  .sidebar-nav-item {
-    justify-content: center;
-    padding: 10px;
-  }
-
-  .sidebar-nav-item.active {
-    border-left: none;
-    margin-left: -8px;
-    padding-left: 10px;
-  }
-
-  .sidebar-create-btn {
-    justify-content: center;
-    padding: 10px;
-  }
-
-  .app-authenticated .feed {
-    margin-left: 64px;
+  .right-panel {
+    display: none;
   }
 
   .feed-content {
     padding: 16px;
+    padding-bottom: 80px;
+  }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+  }
+
+  .bottom-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-secondary);
+    font-size: 11px;
+    gap: 4px;
+    text-decoration: none;
+  }
+
+  .bottom-nav a.active {
+    color: var(--accent);
+  }
+
+  .bottom-nav i {
+    font-size: 22px;
   }
 
   .friend-grid {
@@ -1574,5 +1603,11 @@ a:hover {
   .landing-features {
     gap: 24px;
     padding: 0 16px 40px;
+  }
+}
+
+@media (min-width: 769px) {
+  .bottom-nav {
+    display: none;
   }
 }

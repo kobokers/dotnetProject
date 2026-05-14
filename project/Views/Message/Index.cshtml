@@ -1,6 +1,7 @@
 @model List<(ApplicationUser Friend, Message? LastMessage)>
 @{
     ViewData["Title"] = "Messages";
+    Layout = "_Layout";
 }
 
 <div class="messages-layout">
@@ -137,5 +138,28 @@
     margin: 16px 0 8px;
     font-size: 18px;
     font-weight: 600;
+}
+@@media (max-width: 768px) {
+    .messages-layout {
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        height: auto;
+        min-height: calc(100vh - 140px);
+    }
+    .msg-main {
+        display: none;
+    }
+    .msg-sidebar {
+        width: 100%;
+        border-right: none;
+        flex-shrink: unset;
+    }
+    .msg-sidebar-header {
+        padding: 12px 16px;
+    }
+    .msg-friend-item {
+        padding: 12px 16px;
+    }
 }
 </style>

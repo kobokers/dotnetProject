@@ -42,6 +42,7 @@ public class AccountController : Controller
             UserName = email,
             Email = email,
             DisplayName = displayName ?? email.Split('@')[0],
+            FriendCode = email.Split('@')[0] + "#" + new Random().Next(1000, 9999).ToString(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -75,7 +76,15 @@ public class AccountController : Controller
 
         var result = await _signInManager.PasswordSignInAsync(email, password, false, lockoutOnFailure: false);
         if (result.Succeeded)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user != null && string.IsNullOrEmpty(user.FriendCode))
+            {
+                user.FriendCode = user.UserName + "#" + new Random().Next(1000, 9999).ToString();
+                await _userManager.UpdateAsync(user);
+            }
             return RedirectToAction("Index", "Home");
+        }
 
         ModelState.AddModelError("", "Invalid login attempt.");
         return View();
@@ -113,7 +122,7 @@ public class AccountController : Controller
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Edit(string displayName, string? bio, string? location, IFormFile? profilePhoto)
+    public async Task<IActionResult> Edit(string displayName, string? bio, string? location, IFormFile? profilePhoto, IFormFile? coverPhotoFile)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
@@ -135,6 +144,19 @@ public class AccountController : Controller
             user.ProfilePhoto = $"/uploads/profiles/{fileName}";
         }
 
+        if (coverPhotoFile != null && coverPhotoFile.Length > 0)
+        {
+            var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(coverPhotoFile.FileName)}";
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles", fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await coverPhotoFile.CopyToAsync(stream);
+            }
+
+            user.CoverPhoto = fileName;
+        }
+
         await _userManager.UpdateAsync(user);
         return RedirectToAction("Profile");
     }
@@ -146,7 +168,7 @@ public class AccountController : Controller
         var users = string.IsNullOrWhiteSpace(query)
             ? _userManager.Users.Take(0)
             : _userManager.Users.Where(u =>
-                u.DisplayName!.Contains(query) || u.UserName!.Contains(query));
+                u.DisplayName!.Contains(query) || u.UserName!.Contains(query) || u.FriendCode.Contains(query));
 
         ViewBag.Query = query;
         return View(await users.Take(20).ToListAsync());

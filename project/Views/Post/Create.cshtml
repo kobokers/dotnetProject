@@ -1,3 +1,4 @@
+@model Post
 @{
     ViewData["Title"] = "Create Post";
 }
@@ -9,18 +10,11 @@
 <div class="card">
     <div class="card-body">
         <form method="post" enctype="multipart/form-data">
-            @if (ViewData.ModelState.ErrorCount > 0)
-            {
-                <div class="auth-error mb-4">
-                    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                    {
-                        <div>@err.ErrorMessage</div>
-                    }
-                </div>
-            }
+            <div asp-validation-summary="All" class="auth-error mb-4"></div>
             <div class="form-group">
-                <label class="form-label">What's on your mind?</label>
-                <textarea name="content" class="form-input" rows="5" placeholder="Share something..." required></textarea>
+                <label asp-for="Content" class="form-label">What's on your mind?</label>
+                <textarea asp-for="Content" class="form-input" rows="5" placeholder="What's on your mind?"></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label class="form-label">Image <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
@@ -39,3 +33,7 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

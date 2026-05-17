@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="@(isAuthenticated ? "app-authenticated" : "")">
+<body class="@(isAuthenticated ? "app-authenticated" : "") @ViewBag.BodyClass">
     <div class="app-container">
         @if (isAuthenticated)
         {
@@ -74,6 +74,9 @@
                         <span class="sidebar-username">@currentUser?.UserName</span>
                         <span class="friend-code" id="friendCode" onclick="copyFriendCode()" title="Click to copy your Friend Code">@currentUser?.FriendCode</span>
                     </div>
+                    <button id="themeBtn" class="btn btn-link p-0" title="Toggle theme" style="color:var(--text-secondary);font-size:18px;margin-right:8px;">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
                     <form asp-controller="Account" asp-action="Logout" method="post">
                         <button type="submit" title="Logout" class="btn btn-link p-0">
                             <i class="bi bi-box-arrow-right"></i>
@@ -111,6 +114,9 @@
                     <i class="bi bi-person-circle"></i><span>Profile</span>
                 </a>
             </nav>
+            <a asp-controller="Post" asp-action="Create" class="create-fab">
+                <i class="bi bi-plus-lg"></i>
+            </a>
         }
     </div>
 

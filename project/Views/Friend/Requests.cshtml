@@ -30,6 +30,19 @@
     <h1 class="feed-title">Notifications</h1>
 </div>
 
+<div id="requestsSkeleton" class="skeleton-friends">
+    <div class="post-card" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="flex items-center gap-3">
+            <div class="skeleton" style="width:48px;height:48px;border-radius:50%;"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                <div class="skeleton" style="width:160px;height:14px;"></div>
+                <div class="skeleton" style="width:100px;height:12px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="requestsContent" style="display:none;">
 <div class="request-tabs">
     <a asp-route-tab="received" class="request-tab @(tab == "received" ? "active" : "")">Received (@receivedRequests.Count)</a>
     <a asp-route-tab="sent" class="request-tab @(tab == "sent" ? "active" : "")">Sent (@sentRequests.Count)</a>
@@ -99,9 +112,25 @@ else if (tab == "sent")
                 }
                 <div>
                     <a asp-controller="Account" asp-action="Profile" asp-route-id="@req.ReceiverId" style="font-weight:600;color:var(--text-primary);">@req.Receiver.DisplayName</a>
-                    <div style="font-size:12px;color:var(--text-secondary);">Request sent @req.CreatedAt.ToString("MMM dd")</div>
+                    <div style="font-size:12px;color:var(--text-secondary);">Request sent @req.CreatedAt.ToString("MMM dd")                    </div>
                 </div>
             </div>
         </div>
     }
 }
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var skeleton = document.getElementById('requestsSkeleton');
+        var content = document.getElementById('requestsContent');
+        if (skeleton && content) {
+            skeleton.style.display = 'block';
+            content.style.display = 'none';
+            setTimeout(function() {
+                skeleton.style.display = 'none';
+                content.style.display = 'block';
+            }, 600);
+        }
+    });
+</script>

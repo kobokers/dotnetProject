@@ -3,6 +3,7 @@
 @using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "Home";
+    Layout = User.Identity?.IsAuthenticated == true ? "_Layout" : "_AuthLayout";
 }
 
 @if (User.Identity?.IsAuthenticated == true)
@@ -77,10 +78,10 @@
 }
 else
 {
-    <div class="landing-split">
-        <div class="landing-bg"></div>
+    <div class="landing-bg"></div>
+    <div class="landing-container">
         <div class="landing-left">
-            <div class="landing-logo-text">F.R.I.E.N.D.S</div>
+            <div class="landing-title">F.R.I.E.N.D.S</div>
             <div class="landing-subtitle">Connect, share, and stay in touch with the people you care about.</div>
             <div class="landing-actions">
                 <a asp-controller="Account" asp-action="Register" class="btn btn-primary" style="padding:12px 32px;font-size:16px;">Get Started</a>

@@ -9,8 +9,9 @@
         <form method="post">
             <div asp-validation-summary="All" class="text-danger mb-3"></div>
             <div class="mb-3">
-                <label class="form-label">Content</label>
-                <textarea name="content" class="form-control" rows="3" required>@Model.Content</textarea>
+                <label asp-for="Content" class="form-label">Content</label>
+                <textarea asp-for="Content" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
             </div>
             <button type="submit" class="btn btn-primary w-100">Save</button>
             <a asp-controller="Post" asp-action="Details" asp-route-id="@Model.PostId" class="btn btn-outline-secondary w-100 mt-2">Cancel</a>

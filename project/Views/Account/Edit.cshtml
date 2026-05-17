@@ -9,55 +9,85 @@
 
 <div class="card">
     <div class="card-body">
+        <div class="edit-tabs">
+            <button class="edit-tab-btn active" data-tab="basic" onclick="switchEditTab('basic')">Basic Info</button>
+            <button class="edit-tab-btn" data-tab="appearance" onclick="switchEditTab('appearance')">Appearance</button>
+        </div>
+
         <form method="post" enctype="multipart/form-data">
-            <div class="text-center mb-4">
-                @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
-                {
-                    <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-lg avatar-active mb-2" />
-                }
-                else
-                {
-                    <div class="avatar-circle avatar-lg avatar-active" style="font-size:32px;margin:0 auto 8px;">@(Model.DisplayName?[0] ?? '?')</div>
-                }
-                <div class="file-upload-wrapper" style="justify-content:center;">
-                    <label class="file-upload-btn">
-                        <i class="bi bi-camera"></i> Change Photo
-                        <input name="profilePhoto" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
-                    </label>
-                    <span class="file-upload-name">No file chosen</span>
+            <div id="editTabBasic" class="edit-tab-panel active">
+                <div class="form-group">
+                    <label asp-for="DisplayName" class="form-label">Display Name</label>
+                    <input asp-for="DisplayName" class="form-input" placeholder="e.g. John Doe" />
+                    <span asp-validation-for="DisplayName" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input name="username" class="form-input" value="@Model.UserName" placeholder="e.g. john_doe" readonly style="opacity:0.6;" />
+                </div>
+                <div class="form-group">
+                    <label asp-for="Bio" class="form-label">Bio</label>
+                    <textarea asp-for="Bio" class="form-input" rows="4" placeholder="Tell people about yourself..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Location" class="form-label">Location</label>
+                    <input asp-for="Location" class="form-input" placeholder="e.g. Kuala Lumpur, Malaysia" />
                 </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">Display Name</label>
-                <input name="displayName" class="form-input" value="@Model.DisplayName" required />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Bio</label>
-                <textarea name="bio" class="form-input" rows="3">@Model.Bio</textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Location</label>
-                <input name="location" class="form-input" value="@Model.Location" />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Cover Photo</label>
-                <div class="file-upload-wrapper" style="justify-content:flex-start;">
-                    <label class="file-upload-btn">
-                        <i class="bi bi-image"></i> Choose Cover
-                        <input name="coverPhotoFile" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
-                    </label>
-                    <span class="file-upload-name">No file chosen</span>
+
+            <div id="editTabAppearance" class="edit-tab-panel">
+                <div class="text-center mb-4">
+                    @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
+                    {
+                        <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-lg avatar-active mb-2" />
+                    }
+                    else
+                    {
+                        <div class="avatar-circle avatar-lg avatar-active" style="font-size:32px;margin:0 auto 8px;">@(Model.DisplayName?[0] ?? '?')</div>
+                    }
+                    <div class="file-upload-wrapper" style="justify-content:center;">
+                        <label class="file-upload-btn">
+                            <i class="bi bi-camera"></i> Change Photo
+                            <input name="profilePhoto" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
+                        </label>
+                        <span class="file-upload-name">No file chosen</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cover Photo</label>
+                    <div class="file-upload-wrapper" style="justify-content:flex-start;">
+                        <label class="file-upload-btn">
+                            <i class="bi bi-image"></i> Choose Cover
+                            <input name="coverPhotoFile" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
+                        </label>
+                        <span class="file-upload-name">No file chosen</span>
+                    </div>
                 </div>
             </div>
+
             <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
         </form>
 
         <form method="post" asp-action="DeleteAccount" class="mt-4" onsubmit="return confirm('Are you sure you want to delete your account? This cannot be undone.');">
-            <button type="submit" class="btn btn-danger btn-block">Delete Account</button>
+            <button type="submit" class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);">Delete Account</button>
         </form>
 
         <div class="auth-link">
-            <a asp-action="Profile">Back to Profile</a>
+            <a asp-action="Profile" class="btn btn-outline btn-block" style="text-align:center;">Back to Profile</a>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function switchEditTab(tab) {
+            document.querySelectorAll('.edit-tab-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            document.querySelectorAll('.edit-tab-panel').forEach(function(panel) {
+                panel.classList.toggle('active', panel.id === 'editTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            });
+        }
+    </script>
+}

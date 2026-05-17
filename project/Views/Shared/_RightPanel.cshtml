@@ -22,8 +22,9 @@
 }
 
 <div class="right-panel-section">
-    <form asp-controller="Account" asp-action="Search" method="get">
-        <input name="query" class="search-input" type="text" placeholder="Search..." />
+    <form asp-controller="Account" asp-action="Search" method="get" class="search-wrapper">
+        <i class="bi bi-search search-icon"></i>
+        <input name="query" class="search-input" type="text" placeholder="Search by name or Friend Code e.g. akmal#1234" />
     </form>
 </div>
 

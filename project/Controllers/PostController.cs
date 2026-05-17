@@ -80,26 +80,21 @@ public class PostController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        return View();
+        return View(new Post());
     }
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Create(string content, IFormFile? image)
+    public async Task<IActionResult> Create(Post model, IFormFile? image)
     {
-        if (string.IsNullOrWhiteSpace(content))
+        if (!ModelState.IsValid)
         {
-            ModelState.AddModelError("", "Content is required.");
-            return View();
+            return View(model);
         }
 
         var user = await _userManager.GetUserAsync(User);
-        var post = new Post
-        {
-            UserId = user!.Id,
-            Content = content,
-            CreatedAt = DateTime.UtcNow
-        };
+        model.UserId = user!.Id;
+        model.CreatedAt = DateTime.UtcNow;
 
         if (image != null && image.Length > 0)
         {
@@ -111,10 +106,10 @@ public class PostController : Controller
                 await image.CopyToAsync(stream);
             }
 
-            post.ImageUrl = $"/uploads/posts/{fileName}";
+            model.ImageUrl = $"/uploads/posts/{fileName}";
         }
 
-        _context.Posts.Add(post);
+        _context.Posts.Add(model);
         await _context.SaveChangesAsync();
         return RedirectToAction("Index");
     }
@@ -134,21 +129,21 @@ public class PostController : Controller
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Edit(int id, string content)
+    public async Task<IActionResult> Edit(int id, Post model)
     {
+        if (!ModelState.IsValid)
+        {
+            model.PostId = id;
+            return View(model);
+        }
+
         var post = await _context.Posts.FindAsync(id);
         if (post == null) return NotFound();
 
         var user = await _userManager.GetUserAsync(User);
         if (post.UserId != user!.Id) return Forbid();
 
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            ModelState.AddModelError("", "Content is required.");
-            return View(post);
-        }
-
-        post.Content = content;
+        post.Content = model.Content;
         post.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         return RedirectToAction("Details", new { id });

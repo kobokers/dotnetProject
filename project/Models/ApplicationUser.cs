@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 
 namespace project.Models;
 
 public class ApplicationUser : IdentityUser
 {
+    [Required(ErrorMessage = "Display name is required.")]
     public string? DisplayName { get; set; }
     public string? Bio { get; set; }
     public string? ProfilePhoto { get; set; }

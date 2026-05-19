@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Story> Stories => Set<Story>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -93,6 +94,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasIndex(m => new { m.SenderId, m.ReceiverId, m.CreatedAt });
+        });
+
+        builder.Entity<Notification>(entity =>
+        {
+            entity.HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.FromUser)
+                .WithMany()
+                .HasForeignKey(n => n.FromUserId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

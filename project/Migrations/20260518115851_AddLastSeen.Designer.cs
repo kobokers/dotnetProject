@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using project.Models;
 
@@ -11,9 +12,11 @@ using project.Models;
 namespace project.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518115851_AddLastSeen")]
+    partial class AddLastSeen
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -378,47 +381,6 @@ namespace project.Migrations
                     b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("project.Models.Notification", b =>
-                {
-                    b.Property<int>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NotificationId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FromUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ReferenceId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("NotificationId");
-
-                    b.HasIndex("FromUserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notifications");
-                });
-
             modelBuilder.Entity("project.Models.Post", b =>
                 {
                     b.Property<int>("PostId")
@@ -605,25 +567,6 @@ namespace project.Migrations
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("project.Models.Notification", b =>
-                {
-                    b.HasOne("project.Models.ApplicationUser", "FromUser")
-                        .WithMany()
-                        .HasForeignKey("FromUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("project.Models.ApplicationUser", "User")
-                        .WithMany("Notifications")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FromUser");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("project.Models.Post", b =>
                 {
                     b.HasOne("project.Models.ApplicationUser", "User")
@@ -649,8 +592,6 @@ namespace project.Migrations
             modelBuilder.Entity("project.Models.ApplicationUser", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("Notifications");
 
                     b.Navigation("Posts");
 

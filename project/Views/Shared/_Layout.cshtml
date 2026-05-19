@@ -6,7 +6,7 @@
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     ApplicationUser? currentUser = null;
-    int pendingCount = 0;
+    int notificationCount = 0;
 
     if (isAuthenticated)
     {
@@ -18,8 +18,10 @@
                 currentUser.FriendCode = currentUser.UserName + "#" + new Random().Next(1000, 9999).ToString();
                 await UserManager.UpdateAsync(currentUser);
             }
-            pendingCount = await AppDbContext.FriendRequests
-                .CountAsync(f => f.ReceiverId == currentUser.Id && f.Status == FriendRequestStatus.Pending);
+            currentUser.LastSeen = DateTime.UtcNow;
+            await UserManager.UpdateAsync(currentUser);
+            notificationCount = await AppDbContext.Notifications
+                .CountAsync(n => n.UserId == currentUser.Id && !n.IsRead);
         }
     }
 }
@@ -28,7 +30,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - F.R.I.E.N.D.S</title>
+    <title>@ViewData["Title"] - MehKawan</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -40,7 +42,7 @@
         @if (isAuthenticated)
         {
             <aside class="sidebar">
-                <a asp-controller="Post" asp-action="Index" class="sidebar-logo">F.R.I.E.N.D.S</a>
+                <a asp-controller="Post" asp-action="Index" class="sidebar-logo">MehKawan</a>
                 <nav class="sidebar-nav">
                     <a asp-controller="Post" asp-action="Index" class="sidebar-nav-item active-check" data-active="Post,Index">
                         <i class="bi bi-house-fill"></i><span>Home</span>
@@ -51,11 +53,11 @@
                     <a asp-controller="Post" asp-action="Index" class="sidebar-nav-item active-check" data-active="Post,Index">
                         <i class="bi bi-compass"></i><span>Explore</span>
                     </a>
-                    <a asp-controller="Friend" asp-action="Requests" class="sidebar-nav-item active-check" data-active="Friend,Requests">
+                    <a asp-controller="Notification" asp-action="Index" class="sidebar-nav-item active-check" data-active="Notification,Index">
                         <i class="bi bi-bell"></i><span>Notifications</span>
-                        @if (pendingCount > 0)
+                        @if (notificationCount > 0)
                         {
-                            <span class="notification-badge">@pendingCount</span>
+                            <span class="notification-badge">@notificationCount</span>
                         }
                     </a>
                     <a asp-controller="Message" asp-action="Index" class="sidebar-nav-item active-check" data-active="Message,Index">
@@ -141,7 +143,7 @@
             var html = document.documentElement;
             var btn = document.getElementById('themeBtn');
             if (!btn) return;
-            var saved = localStorage.getItem('friends-theme');
+            var saved = localStorage.getItem('mehkawan-theme');
             if (saved && themes.indexOf(saved) !== -1) {
                 html.setAttribute('data-theme', saved);
             }
@@ -155,7 +157,7 @@
                 var idx = themes.indexOf(current);
                 var next = themes[(idx + 1) % themes.length];
                 html.setAttribute('data-theme', next);
-                localStorage.setItem('friends-theme', next);
+                localStorage.setItem('mehkawan-theme', next);
                 updateIcon();
             });
         })();

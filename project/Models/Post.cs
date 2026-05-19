@@ -18,7 +18,9 @@ public class Post
 
     public DateTime? UpdatedAt { get; set; }
 
-    public ApplicationUser User { get; set; } = null!;
+    [System.ComponentModel.DataAnnotations.Schema.ForeignKey(nameof(UserId))]
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public ApplicationUser? User { get; set; }
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Like> Likes { get; set; } = new List<Like>();
 }

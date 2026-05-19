@@ -13,6 +13,7 @@ public class ApplicationUser : IdentityUser
     public string? Location { get; set; }
     public string FriendCode { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastSeen { get; set; }
 
     public ICollection<Post> Posts { get; set; } = new List<Post>();
     public ICollection<FriendRequest> SentRequests { get; set; } = new List<FriendRequest>();
@@ -21,4 +22,5 @@ public class ApplicationUser : IdentityUser
     public ICollection<Story> Stories { get; set; } = new List<Story>();
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
     public ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

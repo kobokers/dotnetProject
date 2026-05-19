@@ -3,6 +3,17 @@
 @using Microsoft.EntityFrameworkCore
 @{
     var currentUser = await UserManager.GetUserAsync(User);
+    var currentUserId = currentUser?.Id;
+
+    var postCount = currentUserId != null ? await AppDbContext.Posts.CountAsync(p => p.UserId == currentUserId) : 0;
+    var friendCount = currentUserId != null ? await AppDbContext.FriendRequests
+        .CountAsync(f => (f.SenderId == currentUserId || f.ReceiverId == currentUserId) && f.Status == FriendRequestStatus.Accepted) : 0;
+    var likesReceived = currentUserId != null ? await AppDbContext.Likes
+        .CountAsync(l => AppDbContext.Posts
+            .Where(p => p.UserId == currentUserId)
+            .Select(p => p.PostId)
+            .Contains(l.PostId)) : 0;
+
     var friendIds = new List<string>();
     if (currentUser != null)
     {
@@ -11,14 +22,40 @@
                 (f.SenderId == currentUser.Id || f.ReceiverId == currentUser.Id))
             .Select(f => f.SenderId == currentUser.Id ? f.ReceiverId : f.SenderId)
             .ToListAsync();
-        friendIds.Add(currentUser.Id);
     }
 
-    var suggestedUsers = await UserManager.Users
-        .Where(u => !friendIds.Contains(u.Id))
-        .OrderBy(u => Guid.NewGuid())
-        .Take(3)
+    var onlineFriends = await UserManager.Users
+        .Where(u => friendIds.Contains(u.Id) && u.LastSeen != null && u.LastSeen >= DateTime.UtcNow.AddMinutes(-30))
+        .Take(5)
         .ToListAsync();
+
+    var recentActivity = new List<string>();
+    if (currentUserId != null)
+    {
+        var myPostIds = await AppDbContext.Posts
+            .Where(p => p.UserId == currentUserId)
+            .Select(p => p.PostId)
+            .ToListAsync();
+
+        var recentLikes = await AppDbContext.Likes
+            .Include(l => l.User)
+            .Where(l => myPostIds.Contains(l.PostId))
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(3)
+            .Select(l => l.User.DisplayName + " liked your post")
+            .ToListAsync();
+
+        var recentMessages = await AppDbContext.Messages
+            .Include(m => m.Sender)
+            .Where(m => m.ReceiverId == currentUserId)
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(2)
+            .Select(m => m.Sender.DisplayName + " sent you a message")
+            .ToListAsync();
+
+        recentActivity.AddRange(recentLikes);
+        recentActivity.AddRange(recentMessages);
+    }
 }
 
 <div class="right-panel-section">
@@ -29,50 +66,64 @@
 </div>
 
 <div class="right-panel-section">
-    <div class="filter-tabs">
-        <button class="filter-tab active">All</button>
-        <button class="filter-tab">Popular</button>
-        <button class="filter-tab">Account</button>
+    <div class="stats-row">
+        <div class="stat-item">
+            <span class="stat-number">@postCount</span>
+            <span class="stat-label">Posts</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">@friendCount</span>
+            <span class="stat-label">Friends</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">@likesReceived</span>
+            <span class="stat-label">Likes</span>
+        </div>
     </div>
 </div>
 
-<div class="right-panel-section">
-    <div class="right-panel-title">Suggested for you</div>
-    @if (suggestedUsers.Any())
-    {
-        foreach (var user in suggestedUsers)
+@if (onlineFriends.Any())
+{
+    <div class="right-panel-section">
+        <div class="section-title">Online Friends</div>
+        @foreach (var friend in onlineFriends)
         {
-            <div class="suggested-user">
-                @if (!string.IsNullOrEmpty(user.ProfilePhoto))
-                {
-                    <img src="@user.ProfilePhoto" alt="" class="avatar avatar-sm" />
-                }
-                else
-                {
-                    <div class="avatar-circle avatar-sm" style="font-size:12px;">@(user.DisplayName?[0] ?? '?')</div>
-                }
-                <div class="suggested-user-info">
-                    <div class="suggested-user-name">
-                        <a asp-controller="Account" asp-action="Profile" asp-route-id="@user.Id">@user.DisplayName</a>
-                    </div>
-                    <div class="suggested-user-sub">@(user.Location ?? "New member")</div>
+            <div class="online-friend">
+                <div style="position:relative;display:inline-block;">
+                    @if (!string.IsNullOrEmpty(friend.ProfilePhoto))
+                    {
+                        <img src="@friend.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                    }
+                    else
+                    {
+                        <div class="avatar-circle avatar-sm" style="font-size:12px;">@(friend.DisplayName?[0] ?? '?')</div>
+                    }
+                    <span class="online-dot"></span>
                 </div>
-                <form method="post" asp-controller="Friend" asp-action="SendRequest" asp-route-receiverId="@user.Id">
-                    <button type="submit" class="suggested-follow-btn"><i class="bi bi-person-plus"></i></button>
-                </form>
+                <span class="online-name">@friend.DisplayName</span>
             </div>
         }
-    }
-    else
-    {
-        <p style="font-size:13px;color:var(--text-secondary);">No suggestions right now.</p>
-    }
-</div>
+    </div>
+}
+
+@if (recentActivity.Any())
+{
+    <div class="right-panel-section">
+        <div class="section-title">Recent Activity</div>
+        @foreach (var activity in recentActivity)
+        {
+            <div class="activity-item">
+                <i class="bi bi-circle-fill" style="font-size:6px;color:var(--accent);"></i>
+                <span>@activity</span>
+            </div>
+        }
+    </div>
+}
 
 <div class="right-panel-section">
-    <div class="right-panel-title">Trending Topics</div>
+    <div class="section-title">Trending Topics</div>
     <div>
-        <a href="#" class="hashtag-pill">#friends</a>
+        <a href="#" class="hashtag-pill">#mehkawan</a>
         <a href="#" class="hashtag-pill">#social</a>
         <a href="#" class="hashtag-pill">#dotnet</a>
         <a href="#" class="hashtag-pill">#coding</a>

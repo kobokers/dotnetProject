@@ -73,6 +73,8 @@ public class FriendController : Controller
         _context.FriendRequests.Add(request);
         await _context.SaveChangesAsync();
 
+        await NotificationController.CreateAsync(_context, receiverId, NotificationType.FriendRequest, user.Id, null, $"{user.DisplayName} sent you a friend request");
+
         TempData["Success"] = "Friend request sent.";
         return RedirectToAction("Index", "Home");
     }
@@ -87,6 +89,8 @@ public class FriendController : Controller
 
         request.Status = FriendRequestStatus.Accepted;
         await _context.SaveChangesAsync();
+
+        await NotificationController.CreateAsync(_context, request.SenderId, NotificationType.FriendAccepted, user.Id, null, $"{user.DisplayName} accepted your friend request");
 
         return RedirectToAction("Index");
     }

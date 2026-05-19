@@ -57,6 +57,12 @@ public class PostController : Controller
                 UserId = user!.Id,
                 CreatedAt = DateTime.UtcNow
             });
+
+            var post = await _context.Posts.FindAsync(postId);
+            if (post != null && post.UserId != user.Id)
+            {
+                await NotificationController.CreateAsync(_context, post.UserId, NotificationType.Like, user.Id, postId, $"{user.DisplayName} liked your post");
+            }
         }
 
         await _context.SaveChangesAsync();
@@ -129,7 +135,7 @@ public class PostController : Controller
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Edit(int id, Post model)
+    public async Task<IActionResult> Edit(int id, Post model, IFormFile? image)
     {
         if (!ModelState.IsValid)
         {
@@ -145,6 +151,20 @@ public class PostController : Controller
 
         post.Content = model.Content;
         post.UpdatedAt = DateTime.UtcNow;
+
+        if (image != null && image.Length > 0)
+        {
+            var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(image.FileName)}";
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "posts", fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream);
+            }
+
+            post.ImageUrl = $"/uploads/posts/{fileName}";
+        }
+
         await _context.SaveChangesAsync();
         return RedirectToAction("Details", new { id });
     }

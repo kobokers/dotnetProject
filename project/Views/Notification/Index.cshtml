@@ -1,0 +1,66 @@
+@model List<Notification>
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Notifications";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var unreadCount = Model.Count(n => !n.IsRead);
+}
+
+<div class="feed-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="feed-title">Notifications</h1>
+        @if (unreadCount > 0)
+        {
+            <form asp-action="MarkAllAsRead" method="post">
+                <button type="submit" class="btn btn-sm btn-outline">Mark all as read</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="empty-state">
+        <i class="bi bi-bell" style="font-size:48px;color:var(--text-secondary);"></i>
+        <p style="color:var(--text-secondary);margin-top:12px;">No notifications yet.</p>
+    </div>
+}
+else
+{
+    @foreach (var notification in Model)
+    {
+        var icon = notification.Type switch
+        {
+            NotificationType.FriendRequest => "bi-person-plus",
+            NotificationType.FriendAccepted => "bi-person-check",
+            NotificationType.Like => "bi-heart-fill",
+            NotificationType.Comment => "bi-chat-dots",
+            NotificationType.Message => "bi-chat-left-text",
+            _ => "bi-bell"
+        };
+
+        var link = notification.Type switch
+        {
+            NotificationType.FriendRequest => Url.Action("Requests", "Friend"),
+            NotificationType.FriendAccepted => Url.Action("Profile", "Account", new { id = notification.FromUserId }),
+            NotificationType.Like => Url.Action("Details", "Post", new { id = notification.ReferenceId }),
+            NotificationType.Comment => Url.Action("Details", "Post", new { id = notification.ReferenceId }),
+            NotificationType.Message => Url.Action("Conversation", "Message", new { userId = notification.FromUserId }),
+            _ => "#"
+        };
+
+        <a href="@link" class="notification-item @(notification.IsRead ? "" : "unread")">
+            <div class="notification-icon">
+                <i class="bi @icon"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-message">@notification.Message</div>
+                <div class="notification-time">@notification.CreatedAt.ToLocalTime().ToString("MMM d, h:mm tt")</div>
+            </div>
+            @if (!notification.IsRead)
+            {
+                <div class="notification-dot"></div>
+            }
+        </a>
+    }
+}

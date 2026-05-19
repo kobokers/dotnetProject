@@ -41,6 +41,12 @@ public class CommentController : Controller
 
         _context.Comments.Add(comment);
         await _context.SaveChangesAsync();
+
+        if (post.UserId != user.Id)
+        {
+            await NotificationController.CreateAsync(_context, post.UserId, NotificationType.Comment, user.Id, postId, $"{user.DisplayName} commented on your post");
+        }
+
         return RedirectToAction("Details", "Post", new { id = postId });
     }
 

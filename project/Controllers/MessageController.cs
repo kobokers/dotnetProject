@@ -154,6 +154,8 @@ public class MessageController : Controller
         _context.Messages.Add(message);
         await _context.SaveChangesAsync();
 
+        await NotificationController.CreateAsync(_context, receiverId, NotificationType.Message, currentUserId, message.MessageId, $"{user.DisplayName} sent you a message");
+
         return RedirectToAction("Conversation", new { userId = receiverId });
     }
 }

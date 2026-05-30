@@ -4,9 +4,9 @@
 [data-theme="oled-dark"] {
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
-  --bg-elevated: #111111;
-  --bg-hover: #1a1a1a;
-  --border-color: #1f1f1f;
+  --bg-elevated: #16181c;
+  --bg-hover: #1d1f23;
+  --border-color: #2f3336;
 
   --accent: #e05555;
   --accent-hover: #c94444;
@@ -36,9 +36,9 @@
 [data-theme="teal-dark"] {
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
-  --bg-elevated: #111111;
-  --bg-hover: #1a1a1a;
-  --border-color: #1f1f1f;
+  --bg-elevated: #16181c;
+  --bg-hover: #1d1f23;
+  --border-color: #2f3336;
 
   --accent: #00b894;
   --accent-hover: #00a381;
@@ -68,9 +68,9 @@
 [data-theme="light"] {
   --bg-primary: #fafafa;
   --bg-secondary: #ffffff;
-  --bg-elevated: #f0f2f5;
-  --bg-hover: #e8eaed;
-  --border-color: #dbdbdb;
+  --bg-elevated: #eff3f4;
+  --bg-hover: #e7e7e8;
+  --border-color: #cfd9de;
 
   --accent: #e05555;
   --accent-hover: #c94444;
@@ -1704,6 +1704,9 @@ a:hover {
 .messages-page .feed-content {
     max-width: 100% !important;
     padding: 0 !important;
+}
+.messages-page .create-fab {
+    display: none !important;
 }
 
 @media (max-width: 1200px) {

@@ -32,4 +32,10 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    await project.SeedData.Initialize(scope.ServiceProvider);
+}
+
 app.Run();

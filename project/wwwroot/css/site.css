@@ -261,8 +261,10 @@ input::placeholder, textarea::placeholder, select::placeholder {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  z-index: 100;
 }
 
 .sidebar-logo {
@@ -414,6 +416,8 @@ input::placeholder, textarea::placeholder, select::placeholder {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  margin-left: 220px; /* offset fixed sidebar */
+  margin-right: 300px; /* offset fixed right panel */
 }
 
 .feed-content {
@@ -440,10 +444,12 @@ input::placeholder, textarea::placeholder, select::placeholder {
   flex-shrink: 0;
   border-left: 1px solid var(--border-color);
   padding: 24px 16px;
-  position: sticky;
+  position: fixed;
   top: 0;
+  right: 0;
   height: 100vh;
   overflow-y: auto;
+  z-index: 100;
 }
 
 .right-panel-section {
@@ -1714,6 +1720,10 @@ a:hover {
     display: none;
   }
 
+  .feed {
+    margin-right: 0;
+  }
+
   .feed-content {
     padding: 24px 16px;
   }
@@ -1726,6 +1736,11 @@ a:hover {
 
   .right-panel {
     display: none;
+  }
+
+  .feed {
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .feed-content {

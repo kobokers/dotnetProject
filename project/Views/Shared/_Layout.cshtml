@@ -70,12 +70,6 @@
                     <a asp-controller="Bookmark" asp-action="Index" class="sidebar-nav-item active-check" data-active="Bookmark,Index">
                         <i class="bi bi-bookmark"></i><span>Bookmarks</span>
                     </a>
-                    <a asp-controller="Account" asp-action="Profile" class="sidebar-nav-item active-check" data-active="Account,Profile">
-                        <i class="bi bi-person-circle"></i><span>Profile</span>
-                    </a>
-                    <a asp-controller="Settings" asp-action="Index" class="sidebar-nav-item active-check" data-active="Settings,Index">
-                        <i class="bi bi-gear"></i><span>Settings</span>
-                    </a>
                 </nav>
                 <!-- Avatar popup menu at bottom -->
                 <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)">
@@ -134,9 +128,6 @@
                 </a>
                 <a asp-controller="Bookmark" asp-action="Index" class="active-check" data-active="Bookmark,Index">
                     <i class="bi bi-bookmark"></i><span>Saved</span>
-                </a>
-                <a asp-controller="Account" asp-action="Profile" class="active-check" data-active="Account,Profile">
-                    <i class="bi bi-person-circle"></i><span>Profile</span>
                 </a>
             </nav>
             <a asp-controller="Post" asp-action="Create" class="create-fab">

@@ -5,8 +5,6 @@ namespace project.Models;
 
 public class ApplicationUser : IdentityUser
 {
-    public string? UserSettings { get; set; }
-
     [Required(ErrorMessage = "Display name is required.")]
     public string? DisplayName { get; set; }
     public string? Bio { get; set; }
@@ -25,4 +23,5 @@ public class ApplicationUser : IdentityUser
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
     public ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public string? UserSettings { get; set; }
 }

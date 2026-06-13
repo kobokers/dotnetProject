@@ -14,16 +14,16 @@
 
 <div class="post-modal-content">
     <div class="post-modal-header">
-        @if (Model.User != null && !string.IsNullOrEmpty(Model.User.ProfilePhoto))
+        @if (!string.IsNullOrEmpty(Model.User.ProfilePhoto))
         {
             <img src="@Model.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
         }
-        else if (Model.User != null)
+        else
         {
             <div class="avatar-circle avatar-sm" style="font-size:14px;">@(Model.User.DisplayName?[0] ?? '?')</div>
         }
         <div class="post-modal-header-author">
-            <a href="/Account/Profile/@Model.UserId">@(Model.User?.DisplayName ?? "Unknown")</a>
+            <a href="/Account/Profile/@Model.UserId">@Model.User.DisplayName</a>
             <div class="post-modal-time">@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
         </div>
         @if (Model.UserId == currentUserId)
@@ -77,11 +77,11 @@
             <div class="post-modal-text-divider"></div>
 
             <div class="post-modal-comments-list" id="modal-comments-@Model.PostId">
-                @if (Model.Comments == null || !Model.Comments.Any())
+                @if (!Model.Comments.Any())
                 {
                     <div class="post-modal-comments-empty">No comments yet. Be the first to comment!</div>
                 }
-                @foreach (var comment in (Model.Comments ?? new List<Comment>()).OrderBy(c => c.CreatedAt))
+                @foreach (var comment in Model.Comments.OrderBy(c => c.CreatedAt))
                 {
                     <div class="comment-item">
                         @if (!string.IsNullOrEmpty(comment.User.ProfilePhoto))

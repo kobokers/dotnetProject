@@ -107,7 +107,7 @@
                 }
             }
 
-            @foreach (var msg in Model!)
+            @foreach (var msg in Model)
             {
                 var isMine = msg.SenderId == currentUserId;
                 
@@ -196,8 +196,8 @@
         cursor: pointer;
         text-decoration: none;
         color: var(--text-primary);
-        border-bottom: 1px solid var(--border-color);
-        transition: background 0.15s ease;
+        border-bottom: 1px solid var(--border-light);
+        transition: background var(--transition-base);
     }
 
     .conversation-item:hover {
@@ -393,10 +393,10 @@
     }
 
     .bubble-own {
-        background: var(--accent);
+        background: var(--gradient-accent);
         color: white;
         border-bottom-right-radius: 4px;
-        box-shadow: 0 2px 8px var(--accent-soft);
+        box-shadow: 0 2px 8px rgba(88, 101, 242, 0.25);
     }
 
     .bubble-other {
@@ -438,7 +438,7 @@
         padding: 12px 18px;
         font-size: 14px;
         border: 1px solid var(--border-color);
-        background: var(--bg-elevated);
+        background: var(--bg-surface);
         color: var(--text-primary);
     }
     
@@ -459,7 +459,7 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: background 0.15s ease, transform 0.15s ease;
+        transition: background var(--transition-fast), transform var(--transition-fast);
         flex-shrink: 0;
     }
 

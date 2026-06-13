@@ -12,16 +12,16 @@
 }
 <div class="post-card" data-post-id="@Model.PostId">
     <div class="post-card-header">
-        @if (Model.User != null && !string.IsNullOrEmpty(Model.User.ProfilePhoto))
+        @if (!string.IsNullOrEmpty(Model.User.ProfilePhoto))
         {
             <img src="@Model.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
         }
-        else if (Model.User != null)
+        else
         {
             <div class="avatar-circle avatar-sm" style="font-size:14px;">@(Model.User.DisplayName?[0] ?? '?')</div>
         }
         <div class="post-card-author">
-            <a asp-controller="Account" asp-action="Profile" asp-route-id="@Model.UserId">@(Model.User?.DisplayName ?? "Unknown")</a>
+            <a asp-controller="Account" asp-action="Profile" asp-route-id="@Model.UserId">@Model.User.DisplayName</a>
             <div class="post-card-time">@Model.CreatedAt.ToString("MMM dd, yyyy")</div>
         </div>
         @if (Model.UserId == currentUserId)

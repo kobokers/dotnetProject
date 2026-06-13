@@ -1,4 +1,4 @@
-@using Microsoft.AspNetCore.Components.Forms
+﻿@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @inject UserManager<ApplicationUser> UserManager
@@ -67,34 +67,23 @@
                     <a asp-controller="Message" asp-action="Index" class="sidebar-nav-item active-check" data-active="Message,Index">
                         <i class="bi bi-chat"></i><span>Messages</span>
                     </a>
-                    <a asp-controller="Bookmark" asp-action="Index" class="sidebar-nav-item active-check" data-active="Bookmark,Index">
-                        <i class="bi bi-bookmark"></i><span>Bookmarks</span>
+                    <a asp-controller="Account" asp-action="Profile" class="sidebar-nav-item active-check" data-active="Account,Profile">
+                        <i class="bi bi-person-circle"></i><span>Profile</span>
+                    </a>
+                    <a asp-controller="Settings" asp-action="Index" class="sidebar-nav-item active-check" data-active="Settings,Index">
+                        <i class="bi bi-gear"></i><span>Settings</span>
                     </a>
                 </nav>
-                <!-- Avatar popup menu at bottom -->
-                <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)">
-                    <div class="sidebar-avatar-wrap">
-                        <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
-                        <span class="sidebar-online-dot"></span>
-                    </div>
+                <div class="sidebar-user">
+                    <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
                     <div class="sidebar-user-info">
                         <span class="sidebar-username">@currentUser?.UserName</span>
-                        <span class="friend-code" id="friendCode" onclick="event.stopPropagation();copyFriendCode();" title="Click to copy your Friend Code">@currentUser?.FriendCode</span>
+                        <span class="friend-code" id="friendCode" onclick="copyFriendCode()" title="Click to copy your Friend Code">@currentUser?.FriendCode</span>
                     </div>
-                    <i class="bi bi-three-dots sidebar-more-icon"></i>
-
-                    <!-- Avatar popup menu -->
-                    <div class="avatar-popup-menu" id="avatarPopupMenu" onclick="event.stopPropagation();">
-                        <a asp-controller="Account" asp-action="Profile" class="avatar-menu-item">
-                            <i class="bi bi-person-circle"></i> Profile
-                        </a>
-                        <a asp-controller="Settings" asp-action="Index" class="avatar-menu-item">
-                            <i class="bi bi-gear"></i> Settings
-                        </a>
-                        <div class="avatar-menu-divider"></div>
-                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-block">
-                            <button type="submit" class="avatar-menu-item avatar-menu-logout">
-                                <i class="bi bi-box-arrow-right"></i> Log Out
+                    <div class="flex gap-2">
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                            <button type="submit" title="Logout" class="btn-icon">
+                                <i class="bi bi-box-arrow-right"></i>
                             </button>
                         </form>
                     </div>
@@ -103,19 +92,16 @@
         }
 
         <main class="feed">
-            <div class="feed-content @(ViewData["HideRightPanel"] as bool? == true ? "feed-content--full" : "")">
+            <div class="feed-content">
                 @RenderBody()
             </div>
         </main>
 
         @if (isAuthenticated)
         {
-            @if (ViewData["HideRightPanel"] as bool? != true)
-            {
-                <aside class="right-panel">
-                    <partial name="_RightPanel" />
-                </aside>
-            }
+            <aside class="right-panel">
+                <partial name="_RightPanel" />
+            </aside>
             <nav class="bottom-nav">
                 <a asp-controller="Post" asp-action="Index" class="active-check" data-active="Post,Index">
                     <i class="bi bi-house-fill"></i><span>Home</span>
@@ -126,8 +112,14 @@
                 <a asp-controller="Post" asp-action="Create">
                     <i class="bi bi-plus-square"></i><span>Create</span>
                 </a>
-                <a asp-controller="Bookmark" asp-action="Index" class="active-check" data-active="Bookmark,Index">
-                    <i class="bi bi-bookmark"></i><span>Saved</span>
+                <a asp-controller="Message" asp-action="Index" class="active-check" data-active="Message,Index">
+                    <i class="bi bi-chat"></i><span>Messages</span>
+                </a>
+                <a asp-controller="Account" asp-action="Profile" class="active-check" data-active="Account,Profile">
+                    <i class="bi bi-person-circle"></i><span>Profile</span>
+                </a>
+                <a asp-controller="Settings" asp-action="Index" class="active-check" data-active="Settings,Index">
+                    <i class="bi bi-gear"></i><span>Settings</span>
                 </a>
             </nav>
             <a asp-controller="Post" asp-action="Create" class="create-fab">
@@ -185,33 +177,6 @@
             var overlay = document.getElementById('confirmOverlay');
             if (overlay && overlay.classList.contains('active') && e.target === overlay) {
                 closeConfirm();
-            }
-        });
-
-        // Avatar popup menu toggle
-        window.toggleAvatarMenu = function(e) {
-            e.stopPropagation();
-            var menu = document.getElementById('avatarPopupMenu');
-            if (!menu) return;
-            var isOpen = menu.classList.contains('open');
-            if (isOpen) {
-                menu.classList.remove('open');
-                return;
-            }
-            var btn = document.getElementById('sidebarUserBtn');
-            var r = btn.getBoundingClientRect();
-            menu.style.left = Math.max(8, r.left + 10) + 'px';
-            menu.style.bottom = (window.innerHeight - r.top + 8) + 'px';
-            menu.classList.add('open');
-        };
-
-        // Close avatar menu on outside click
-        document.addEventListener('click', function(e) {
-            var menu = document.getElementById('avatarPopupMenu');
-            var btn = document.getElementById('sidebarUserBtn');
-            if (!menu || !menu.classList.contains('open')) return;
-            if (!menu.contains(e.target) && !btn.contains(e.target)) {
-                menu.classList.remove('open');
             }
         });
     </script>

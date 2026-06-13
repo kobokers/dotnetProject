@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using project.Models;
-using project.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,12 +12,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(
-        Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtection-Keys")));
-
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<UserSettingsService>();
 
 builder.WebHost.ConfigureKestrel(options =>
 {

@@ -1,4 +1,4 @@
-// Active nav highlighting
+﻿// Active nav highlighting
 (function() {
     document.querySelectorAll('.active-check').forEach(function(el) {
         var data = el.getAttribute('data-active').split(',');
@@ -109,10 +109,33 @@ if ('serviceWorker' in navigator) {
 })();
 
 // Staggered fade-in for page content
-// Staggered fade-in for page content disabled to avoid unwanted animation on load.
-// (function() {
-//     // Original animation code removed.
-// })();
+(function() {
+    function animateChildren(container) {
+        if (!container) return;
+        var children = container.children;
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            if (child.id && child.id.indexOf('Skeleton') !== -1) continue;
+            if (child.id && child.id.indexOf('skeleton') !== -1) continue;
+            if (child.classList.contains('story-row')) continue;
+            child.style.opacity = '0';
+            child.style.transform = 'translateY(12px)';
+            child.style.transition = 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+            (function(el, delay) {
+                setTimeout(function() {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, delay);
+            })(child, 60 + (i * 70));
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            animateChildren(document.querySelector('.feed-content'));
+        }, 200);
+    });
+})();
 
 // Floating particles on landing page
 (function() {

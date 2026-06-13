@@ -1,8 +1,7 @@
-@model project.Models.SettingsViewModel
+@model ApplicationUser
 @{
     ViewData["Title"] = "Settings";
 }
-@Html.AntiForgeryToken()
 
 <div class="feed-header">
     <h1 class="feed-title">Settings</h1>
@@ -54,16 +53,6 @@
     </div>
 </div>
 
-<div class="settings-section">
-    <h3 class="settings-heading">Privacy</h3>
-    <p class="settings-sub">Public profile visibility</p>
-<label class="switch">
-    <input type="checkbox" id="profilePublicToggle" @(Model.Settings.ProfilePublic ? "checked" : "") />
-    <span class="slider round"></span>
-</label>
-<span class="ml-2">Public profile</span>
-</div>
-
 @section Scripts {
     <script>
         // Apply saved theme on load
@@ -90,25 +79,5 @@
                 localStorage.setItem('mehkawan-theme', theme);
             });
         });
-        // Public profile toggle
-    var publicToggle = document.getElementById('profilePublicToggle');
-    if (publicToggle) {
-        publicToggle.addEventListener('change', function () {
-            var isPublic = publicToggle.checked;
-            fetch('@Url.Action("UpdateProfilePublic", "Settings")', {
-                method: 'POST',
-                headers: {
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ isPublic: isPublic })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) alert('Failed to save profile visibility');
-            })
-            .catch(err => alert('Error: ' + err));
-        });
-    }
-</script>
+    </script>
 }

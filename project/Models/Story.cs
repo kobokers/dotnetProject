@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace project.Models;
 
@@ -9,8 +10,15 @@ public class Story
     [Required]
     public string UserId { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Story image is required.")]
-    public string ImageUrl { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+
+    [NotMapped]
+    public string? Content { get; set; }
+
+    [NotMapped]
+    public string? BackgroundColor { get; set; }
+
+    public string? FontStyle { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

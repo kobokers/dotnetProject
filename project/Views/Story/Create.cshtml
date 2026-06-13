@@ -1,40 +1,176 @@
 @{
     ViewData["Title"] = "Add Story";
+    ViewData["HideRightPanel"] = true;
+}
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
 }
 
-<div class="feed-header">
-    <h1 class="feed-title">Add Story</h1>
-</div>
+<div class="story-create-page">
+    <div class="story-create-container">
 
-<div class="card">
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
-            @if (ViewData.ModelState.ErrorCount > 0)
-            {
-                <div class="auth-error mb-4">
-                    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        <!-- Step 1: Type Picker -->
+        <div id="scStepPicker" class="story-create-step">
+            <div class="story-create-user">
+                @if (currentUser != null)
+                {
+                    if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
                     {
-                        <div>@err.ErrorMessage</div>
+                        <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
                     }
-                </div>
-            }
-
-            <div class="text-center mb-4">
-                <div id="preview" style="display:none;margin-bottom:16px;">
-                    <img id="previewImg" src="" alt="" style="max-width:100%;max-height:300px;border-radius:var(--radius-md);" />
-                </div>
-                <div class="file-upload-wrapper" style="justify-content:center;">
-                    <label class="file-upload-btn" style="padding:14px 28px;font-size:15px;">
-                        <i class="bi bi-camera" style="font-size:20px;"></i> Choose Photo
-                        <input name="image" type="file" accept="image/*" hidden required
-                               onchange="var f=this.files[0];if(f){var r=new FileReader();r.onload=function(e){document.getElementById('previewImg').src=e.target.result;document.getElementById('preview').style.display='block';};r.readAsDataURL(f);}" />
-                    </label>
-                </div>
-                <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">Your story will expire in 24 hours</p>
+                    else
+                    {
+                        <div class="avatar-circle avatar-sm" style="font-size:14px;">@(currentUser.DisplayName?[0] ?? '?')</div>
+                    }
+                    <span>@currentUser.DisplayName</span>
+                }
             </div>
+            <h2 class="story-create-heading">Create a story</h2>
+            <div class="story-type-grid">
+                <button type="button" class="story-type-card story-type-card--photo" onclick="goToStep('photo')">
+                    <div class="story-type-icon">📷</div>
+                    <div class="story-type-title">Photo Story</div>
+                    <div class="story-type-desc">Share a moment with a photo</div>
+                </button>
+                <button type="button" class="story-type-card story-type-card--text" onclick="goToStep('text')">
+                    <div class="story-type-icon" style="font-weight:800;font-size:28px;">Aa</div>
+                    <div class="story-type-title">Text Story</div>
+                    <div class="story-type-desc">Express yourself with text</div>
+                </button>
+            </div>
+        </div>
 
-            <button type="submit" class="btn btn-primary btn-block"><i class="bi bi-send"></i> Share Story</button>
-            <a asp-controller="Post" asp-action="Index" class="btn btn-outline btn-block mt-2">Cancel</a>
-        </form>
+        <!-- Step 2a: Photo Story -->
+        <div id="scStepPhoto" class="story-create-step" style="display:none;">
+            <div class="story-create-topbar">
+                <button type="button" class="btn-icon" onclick="goToStep('picker')" title="Back"><i class="bi bi-arrow-left"></i></button>
+                <span class="story-create-topbar-title">Photo Story</span>
+            </div>
+            <form method="post" asp-controller="Story" asp-action="Create" enctype="multipart/form-data" class="story-create-form">
+                <input type="hidden" name="content" value="" />
+                <div class="story-photo-area">
+                    <div class="story-photo-preview" id="scPhotoPreview"></div>
+                    <label class="story-photo-btn">
+                        <i class="bi bi-camera" style="font-size:28px;"></i>
+                        <span>Choose a photo</span>
+                        <input name="image" type="file" accept="image/*" hidden required onchange="previewStoryPhoto(this)" />
+                    </label>
+                    <p class="story-hint">Your story will expire in 24 hours</p>
+                </div>
+                <div class="story-create-actions">
+                    <a asp-controller="Post" asp-action="Index" class="btn btn-outline">Discard</a>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Share Story</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Step 2b: Text Story -->
+        <div id="scStepText" class="story-create-step" style="display:none;">
+            <div class="story-create-topbar">
+                <button type="button" class="btn-icon" onclick="goToStep('picker')" title="Back"><i class="bi bi-arrow-left"></i></button>
+                <span class="story-create-topbar-title">Text Story</span>
+            </div>
+            <form method="post" asp-controller="Story" asp-action="Create" class="story-create-form">
+                <input type="hidden" name="image" value="" />
+                <input type="hidden" name="backgroundColor" id="scBgColor" value="#5865f2" />
+                <input type="hidden" name="fontStyle" id="scFontStyle" value="sans-serif" />
+                <div class="text-story-layout">
+                    <div class="text-story-controls">
+                        <div class="text-story-label">Background</div>
+                        <div class="color-swatch-grid">
+                            <button type="button" class="color-swatch active" data-color="#5865f2" style="background:#5865f2;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#ed4245" style="background:#ed4245;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#3ba55d" style="background:#3ba55d;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#faa81a" style="background:#faa81a;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#eb459e" style="background:#eb459e;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#1abc9c" style="background:#1abc9c;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#9b59b6" style="background:#9b59b6;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#34495e" style="background:#34495e;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#e67e22" style="background:#e67e22;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#2c3e50" style="background:#2c3e50;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#8e44ad" style="background:#8e44ad;" onclick="pickColor(this)"></button>
+                            <button type="button" class="color-swatch" data-color="#16a085" style="background:#16a085;" onclick="pickColor(this)"></button>
+                        </div>
+                        <div class="text-story-label" style="margin-top:16px;">Font</div>
+                        <select class="form-input" id="scFontSelect" onchange="updatePreview()">
+                            <option value="sans-serif">Sans-serif</option>
+                            <option value="serif">Serif</option>
+                            <option value="monospace">Monospace</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="'Courier New', monospace">Courier New</option>
+                        </select>
+                        <div class="text-story-label" style="margin-top:16px;">Text</div>
+                        <textarea class="form-input" rows="4" placeholder="What's on your mind?" id="scTextInput" name="content" oninput="updatePreview()" maxlength="200" style="resize:none;"></textarea>
+                        <div style="font-size:11px;color:var(--text-muted);text-align:right;" id="scCharCount">0/200</div>
+                        <div class="story-create-actions" style="margin-top:24px; justify-content: space-between;">
+                            <a asp-controller="Post" asp-action="Index" class="btn btn-outline" style="flex:1; text-align:center;">Discard</a>
+                            <button type="submit" class="btn btn-primary" style="flex:1;"><i class="bi bi-send"></i> Share Story</button>
+                        </div>
+                    </div>
+                    <div class="text-story-preview-wrap">
+                        <div class="text-story-preview-card" id="scPreviewCard" style="background:#5865f2;">
+                            <div class="text-story-preview-user">
+                                @if (currentUser != null)
+                                {
+                                    if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+                                    {
+                                        <img src="@currentUser.ProfilePhoto" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">@(currentUser.DisplayName?[0] ?? '?')</div>
+                                    }
+                                    <span style="font-size:12px;font-weight:600;opacity:0.9;">@currentUser.DisplayName</span>
+                                }
+                            </div>
+                            <div class="text-story-preview-text" id="scPreviewText" style="font-family:sans-serif;">Your story</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function goToStep(step) {
+            document.getElementById('scStepPicker').style.display = step === 'picker' ? '' : 'none';
+            document.getElementById('scStepPhoto').style.display = step === 'photo' ? '' : 'none';
+            document.getElementById('scStepText').style.display = step === 'text' ? '' : 'none';
+            if (step === 'text') updatePreview();
+        }
+
+        function pickColor(btn) {
+            document.querySelectorAll('.color-swatch').forEach(function(s) { s.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('scBgColor').value = btn.getAttribute('data-color');
+            updatePreview();
+        }
+
+        function updatePreview() {
+            var card = document.getElementById('scPreviewCard');
+            var textEl = document.getElementById('scPreviewText');
+            var input = document.getElementById('scTextInput');
+            var fontSelect = document.getElementById('scFontSelect');
+            var bgColor = document.getElementById('scBgColor').value;
+            textEl.style.fontFamily = fontSelect.value;
+            textEl.textContent = input.value.trim() || 'Your story';
+            card.style.background = bgColor;
+            document.getElementById('scCharCount').textContent = input.value.length + '/200';
+        }
+
+        function previewStoryPhoto(input) {
+            var preview = document.getElementById('scPhotoPreview');
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = '<img src="' + e.target.result + '" alt="" style="max-width:100%;max-height:300px;border-radius:var(--radius-md);object-fit:cover;" />';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

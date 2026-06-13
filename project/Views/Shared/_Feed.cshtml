@@ -9,15 +9,22 @@
         .Include(p => p.User)
         .Include(p => p.Likes)
         .Include(p => p.Comments)
+            .ThenInclude(c => c.User)
+        .AsSplitQuery()
         .OrderByDescending(p => p.CreatedAt)
         .ToListAsync();
 
     var likedPostIds = new HashSet<int>();
+    var bookmarkedPostIds = new HashSet<int>();
     if (currentUser != null)
     {
         likedPostIds = (await AppDbContext.Likes
             .Where(l => l.UserId == currentUser.Id)
             .Select(l => l.PostId)
+            .ToListAsync()).ToHashSet();
+        bookmarkedPostIds = (await AppDbContext.Bookmarks
+            .Where(b => b.UserId == currentUser.Id)
+            .Select(b => b.PostId)
             .ToListAsync()).ToHashSet();
     }
 }
@@ -47,31 +54,49 @@
 </div>
 
 <div id="feedContent" style="display:none;">
+@if (currentUser != null)
+{
+    <div class="create-post-box" onclick="openCreatePostModal()">
+        @if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+        {
+            <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+        }
+        else
+        {
+            <div class="avatar-circle avatar-sm" style="font-size:14px;">@(currentUser.DisplayName?[0] ?? '?')</div>
+        }
+        <span class="create-post-placeholder">What's on your mind, @(currentUser.DisplayName?.Split(' ')[0] ?? "there")?</span>
+        <div class="create-post-attach" title="Add photo">
+            <i class="bi bi-image"></i>
+        </div>
+    </div>
+}
 @foreach (var post in posts)
 {
     var likeCount = post.Likes?.Count ?? await AppDbContext.Likes.CountAsync(l => l.PostId == post.PostId);
     var commentCount = post.Comments?.Count ?? await AppDbContext.Comments.CountAsync(c => c.PostId == post.PostId);
     var isLiked = likedPostIds.Contains(post.PostId);
+    var isBookmarked = bookmarkedPostIds.Contains(post.PostId);
 
-    <div class="post-card">
+    <div class="post-card" data-post-id="@post.PostId">
         <div class="post-card-header">
-            @if (!string.IsNullOrEmpty(post.User.ProfilePhoto))
+            @if (post.User != null && !string.IsNullOrEmpty(post.User.ProfilePhoto))
             {
                 <img src="@post.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
             }
-            else
+            else if (post.User != null)
             {
                 <div class="avatar-circle avatar-sm" style="font-size:14px;">@(post.User.DisplayName?[0] ?? '?')</div>
             }
             <div class="post-card-author">
-                <a asp-controller="Account" asp-action="Profile" asp-route-id="@post.UserId">@post.User.DisplayName</a>
+                <a asp-controller="Account" asp-action="Profile" asp-route-id="@post.UserId">@(post.User?.DisplayName ?? "Unknown")</a>
                 <div class="post-card-time">@post.CreatedAt.ToString("MMM dd, yyyy")</div>
             </div>
             @if (post.UserId == currentUserId)
             {
                 <div class="flex gap-2">
-                    <a asp-controller="Post" asp-action="Edit" asp-route-id="@post.PostId" class="btn-icon" title="Edit"><i class="bi bi-pencil"></i></a>
-                    <form method="post" asp-controller="Post" asp-action="Delete" asp-route-id="@post.PostId" class="d-inline" onsubmit="return confirm('Delete this post?');">
+                    <button type="button" class="btn-icon" title="Edit" onclick="openEditPostModal(@post.PostId, this)"><i class="bi bi-pencil"></i></button>
+                    <form method="post" asp-controller="Post" asp-action="Delete" asp-route-id="@post.PostId" class="d-inline">
                         <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="color:var(--danger);"></i></button>
                     </form>
                 </div>
@@ -80,9 +105,23 @@
 
         <div class="post-card-content">@post.Content</div>
 
-        @if (!string.IsNullOrEmpty(post.ImageUrl))
+        @if (post.PostImages.Count > 0)
         {
-            <img src="@post.ImageUrl" alt="Post image" class="post-card-image" />
+            var images = post.PostImages.OrderBy(pi => pi.Order).ToList();
+            <div class="post-image-grid" data-count="@images.Count">
+                @for (int i = 0; i < images.Count; i++)
+                {
+                    var cls = i == 0 ? "grid-first" : "";
+                    <div class="grid-cell @cls" onclick="openLightbox(@post.PostId, @i)">
+                        <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                        @if (i == 3 && images.Count > 4)
+                        {
+                            <div class="grid-overlay">+@(images.Count - 4)</div>
+                        }
+                    </div>
+                    if (i == 3) break;
+                }
+            </div>
         }
 
         <div class="post-card-stats">
@@ -99,9 +138,15 @@
                     </button>
                 </form>
             }
-            <a asp-controller="Post" asp-action="Details" asp-route-id="@post.PostId" class="post-action-btn">
+            <button type="button" class="post-action-btn" onclick="openPostModal(@post.PostId)">
                 <i class="bi bi-chat-dots"></i> Comment
-            </a>
+            </button>
+            @if (currentUser != null)
+            {
+                <button type="button" class="post-action-btn bookmark-btn @(isBookmarked ? "bookmarked" : "")" data-post-id="@post.PostId" onclick="toggleBookmark(this)" title="@(isBookmarked ? "Remove bookmark" : "Save post")">
+                    <i class="bi @(isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+                </button>
+            }
         </div>
     </div>
 }
@@ -123,4 +168,998 @@
             }, 600);
         }
     });
+
+    // ===== Post Modal =====
+
+    function openPostModal(postId) {
+        var overlay = document.getElementById('postModalOverlay');
+        if (!overlay) return;
+        var container = overlay.querySelector('.post-modal-container');
+        if (!container) return;
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="bi bi-arrow-repeat" style="font-size:24px;animation:spin 1s linear infinite;"></i></div>';
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        fetch('/Post/ModalContent/' + postId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(resp) {
+            return resp.text();
+        }).then(function(html) {
+            container.innerHTML = html;
+        }).catch(function() {
+            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--danger);">Failed to load post.</div>';
+        });
+    }
+
+    window.closePostModal = function() {
+        var overlay = document.getElementById('postModalOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    // Close modal on backdrop click
+    document.addEventListener('click', function(e) {
+        var overlay = document.getElementById('postModalOverlay');
+        if (!overlay || !overlay.classList.contains('active')) return;
+        if (e.target === overlay) closePostModal();
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closePostModal();
+    });
+
+    // ===== AJAX like (feed + modal) =====
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.post-action-btn, .like-btn-modal');
+        if (!btn) return;
+
+        // Feed like
+        var form = btn.closest('form');
+        if (form && form.action && form.action.includes('ToggleLike')) {
+            e.preventDefault();
+            handleLike(btn, form);
+            return;
+        }
+
+        // Modal like (like-btn-modal is not inside a form)
+        if (btn.classList.contains('like-btn-modal')) {
+            var postId = btn.getAttribute('data-post-id');
+            if (!postId) return;
+            var fakeForm = document.createElement('form');
+            fakeForm.action = '/Post/ToggleLike?postId=' + postId;
+            var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tokenInput) {
+                var clone = tokenInput.cloneNode();
+                fakeForm.appendChild(clone);
+            }
+            e.preventDefault();
+            handleLike(btn, fakeForm);
+            return;
+        }
+    });
+
+    function handleLike(btn, form) {
+        var modalContent = btn.closest('.post-modal-content');
+        var postCard = btn.closest('.post-card');
+        var statsRow = modalContent
+            ? modalContent.querySelector('.post-modal-stats')
+            : (postCard ? postCard.querySelector('.post-card-stats') : null);
+        var wasLiked = btn.classList.contains('liked');
+
+        btn.classList.toggle('liked');
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = 'bi ' + (wasLiked ? (modalContent ? 'bi-heart' : 'bi-heart') : (modalContent ? 'bi-heart-fill' : 'bi-heart-fill'));
+
+        if (statsRow) {
+            if (modalContent) {
+                var likeCountEl = statsRow.querySelector('.like-count-modal');
+                if (likeCountEl) {
+                    var count = parseInt(likeCountEl.textContent || '0');
+                    likeCountEl.textContent = wasLiked ? count - 1 : count + 1;
+                }
+            } else {
+                var likeStat = statsRow.querySelector('span:first-child');
+                if (likeStat) {
+                    var count = parseInt(likeStat.textContent.match(/\d+/)?.[0] || '0');
+                    likeStat.innerHTML = '<i class="bi bi-heart" style="color:var(--accent);"></i> ' + (wasLiked ? count - 1 : count + 1);
+                }
+            }
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        }).catch(function() {
+            btn.classList.toggle('liked');
+            if (icon) icon.className = 'bi ' + (wasLiked ? (modalContent ? 'bi-heart-fill' : 'bi-heart-fill') : (modalContent ? 'bi-heart' : 'bi-heart'));
+            if (modalContent && statsRow) {
+                var lc = statsRow.querySelector('.like-count-modal');
+                if (lc) {
+                    var c = parseInt(lc.textContent || '0');
+                    lc.textContent = wasLiked ? c + 1 : c - 1;
+                }
+            } else if (statsRow) {
+                var ls = statsRow.querySelector('span:first-child');
+                if (ls) {
+                    var c = parseInt(ls.textContent.match(/\d+/)?.[0] || '0');
+                    ls.innerHTML = '<i class="bi bi-heart" style="color:var(--accent);"></i> ' + (wasLiked ? c + 1 : c - 1);
+                }
+            }
+        });
+    }
+
+    // ===== AJAX comment actions (feed + modal + lightbox) =====
+    function getCommentContainer(el) {
+        var modalContent = el.closest('.post-modal-content');
+        if (modalContent) return modalContent.querySelector('.post-modal-comments-list');
+        var lightboxRight = el.closest('.lightbox-right');
+        if (lightboxRight) return lightboxRight.querySelector('.lightbox-comments-list');
+        return el.closest('.post-comments');
+    }
+
+    function getStatsRow(el) {
+        var modalContent = el.closest('.post-modal-content');
+        if (modalContent) return modalContent.querySelector('.post-modal-stats');
+        var lightboxRight = el.closest('.lightbox-right');
+        if (lightboxRight) return lightboxRight.querySelector('.lightbox-stats');
+        var postCard = el.closest('.post-card');
+        return postCard ? postCard.querySelector('.post-card-stats') : null;
+    }
+
+    function updateCommentCount(statsRow, delta) {
+        if (!statsRow) return;
+        if (statsRow.classList.contains('lightbox-stats')) {
+            var spans = statsRow.querySelectorAll('span');
+            if (spans.length >= 2) {
+                var countEl = spans[1].querySelector('span');
+                if (countEl) {
+                    var c = parseInt(countEl.textContent || '0');
+                    countEl.textContent = Math.max(0, c + delta);
+                }
+            }
+            return;
+        }
+        var modalContent = statsRow.closest('.post-modal-content');
+        if (modalContent) {
+            var spans = statsRow.querySelectorAll('span');
+            if (spans.length >= 2) {
+                var count = parseInt(spans[1].textContent.match(/\d+/)?.[0] || '0');
+                spans[1].innerHTML = '<i class="bi bi-chat-dots"></i> ' + Math.max(0, count + delta) + ' comments';
+            }
+        } else {
+            var commentStat = statsRow.querySelector('span:last-child');
+            if (commentStat) {
+                var count = parseInt(commentStat.textContent.match(/\d+/)?.[0] || '0');
+                commentStat.innerHTML = '<i class="bi bi-chat-dots"></i> ' + Math.max(0, count + delta) + ' Comments';
+            }
+        }
+    }
+
+    function submitDeleteComment(form) {
+        var commentsContainer = getCommentContainer(form);
+        var statsRow = getStatsRow(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (!data.success) return;
+            var item = form.closest('.comment-item');
+            if (item) item.remove();
+            if (commentsContainer) {
+                var remaining = commentsContainer.querySelectorAll('.comment-item');
+                if (remaining.length === 0) {
+                    var emptyEl = commentsContainer.querySelector('.post-modal-comments-empty, p');
+                    if (!emptyEl) {
+                        var emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'post-modal-comments-empty';
+                        emptyDiv.textContent = 'No comments yet. Be the first to comment!';
+                        var inputForm = commentsContainer.querySelector('.comment-input');
+                        if (inputForm) inputForm.insertAdjacentElement('afterend', emptyDiv);
+                        else commentsContainer.appendChild(emptyDiv);
+                    }
+                }
+            }
+            updateCommentCount(statsRow, -1);
+        }).catch(function() {
+            showToast('Failed to delete comment.');
+        });
+    }
+
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form.action) return;
+        var isCreate = form.action.includes('/Comment/Create');
+        var isDelete = form.action.includes('/Comment/Delete');
+        if (!isCreate && !isDelete) return;
+        e.preventDefault();
+
+        if (isDelete) {
+            showConfirm('Delete this comment?', function() {
+                submitDeleteComment(form);
+            });
+            return;
+        }
+
+        var commentsContainer = getCommentContainer(form);
+        var statsRow = getStatsRow(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (!data.success) {
+                if (data.error) showToast(data.error);
+                return;
+            }
+
+            if (commentsContainer) {
+                var emptyMsg = commentsContainer.querySelector('.post-modal-comments-empty, p');
+                if (emptyMsg) emptyMsg.style.display = 'none';
+            }
+
+            var photoHtml = data.userProfilePhoto
+                ? '<img src="' + escapeHtml(data.userProfilePhoto) + '" alt="" class="avatar avatar-sm" />'
+                : '<div class="avatar-circle avatar-sm" style="font-size:12px;">' + escapeHtml(data.userDisplayName.charAt(0)) + '</div>';
+
+            var isOwn = data.userId === '@currentUserId';
+            var actionsHtml = isOwn
+                ? '<div class="comment-actions">' +
+                    '<button type="button" class="btn-icon edit-comment" data-comment-id="' + data.commentId + '" title="Edit"><i class="bi bi-pencil" style="font-size:14px;"></i></button>' +
+                    '<form method="post" action="/Comment/Delete/' + data.commentId + '" class="d-inline">' +
+                        '<button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>' +
+                    '</form>' +
+                '</div>'
+                : '';
+
+            var commentHtml =
+                '<div class="comment-item" data-comment-id="' + data.commentId + '">' +
+                    photoHtml +
+                    '<div class="comment-content">' +
+                        '<a href="/Account/Profile/' + encodeURIComponent(data.userId) + '" class="comment-author">' + escapeHtml(data.userDisplayName) + '</a>' +
+                        '<div class="comment-text">' + escapeHtml(data.content) + '</div>' +
+                        '<div class="comment-time">' + data.createdAt + '</div>' +
+                    '</div>' +
+                    actionsHtml +
+                '</div>';
+
+            var inputForm = commentsContainer ? commentsContainer.querySelector('.comment-input') : null;
+            if (inputForm) {
+                inputForm.insertAdjacentHTML('afterend', commentHtml);
+            } else {
+                commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+            }
+
+            var input = form.querySelector('input[name="content"]');
+            if (input) input.value = '';
+
+            updateCommentCount(statsRow, 1);
+        }).catch(function() {
+            showToast('Failed to post comment.');
+        });
+    });
+
+    // ===== Inline edit comment (feed + modal) =====
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.edit-comment');
+        if (!btn) return;
+        var item = btn.closest('.comment-item');
+        if (!item || item.classList.contains('editing')) return;
+        var textEl = item.querySelector('.comment-text');
+        if (!textEl) return;
+        var originalText = textEl.textContent;
+
+        var editHtml =
+            '<div class="comment-edit-inline">' +
+                '<textarea>' + escapeHtml(originalText) + '</textarea>' +
+                '<div class="comment-edit-actions">' +
+                    '<button type="button" class="btn comment-edit-save">Save</button>' +
+                    '<button type="button" class="btn comment-edit-cancel">Cancel</button>' +
+                '</div>' +
+            '</div>';
+
+        textEl.insertAdjacentHTML('afterend', editHtml);
+        item.classList.add('editing');
+        var textarea = item.querySelector('.comment-edit-inline textarea');
+        if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.comment-edit-save');
+        if (!btn) return;
+        var item = btn.closest('.comment-item');
+        if (!item) return;
+        var textarea = item.querySelector('.comment-edit-inline textarea');
+        if (!textarea) return;
+        var content = textarea.value.trim();
+        if (!content) return;
+        var commentId = item.querySelector('.edit-comment')?.getAttribute('data-comment-id');
+        if (!commentId) return;
+        var textEl = item.querySelector('.comment-text');
+
+        fetch('/Comment/Edit/' + commentId, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'content=' + encodeURIComponent(content)
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (!data.success) {
+                if (data.error) showToast(data.error);
+                return;
+            }
+            if (textEl) textEl.textContent = data.content;
+            item.classList.remove('editing');
+            var editInline = item.querySelector('.comment-edit-inline');
+            if (editInline) editInline.remove();
+        }).catch(function() {
+            showToast('Failed to save comment.');
+        });
+    });
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.comment-edit-cancel');
+        if (!btn) return;
+        var item = btn.closest('.comment-item');
+        if (!item) return;
+        item.classList.remove('editing');
+        var editInline = item.querySelector('.comment-edit-inline');
+        if (editInline) editInline.remove();
+    });
+
+    // ===== Create Post Modal =====
+    window.openCreatePostModal = function() {
+        var overlay = document.getElementById('createPostOverlay');
+        if (!overlay) return;
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        var textarea = overlay.querySelector('textarea');
+        if (textarea) setTimeout(function() { textarea.focus(); }, 200);
+    };
+
+    window.closeCreatePostModal = function() {
+        var overlay = document.getElementById('createPostOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    // Close create post modal on backdrop click
+    document.addEventListener('click', function(e) {
+        var overlay = document.getElementById('createPostOverlay');
+        if (!overlay || !overlay.classList.contains('active')) return;
+        if (e.target === overlay) closeCreatePostModal();
+    });
+
+    // Create post form submission (AJAX)
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form.id || form.id !== 'createPostForm') return;
+        e.preventDefault();
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        var contentInput = form.querySelector('textarea[name="Content"]');
+        var fileInput = form.querySelector('input[name="images"]');
+        var content = contentInput ? contentInput.value.trim() : '';
+        var hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+        if (!content && !hasFile) {
+            showToast('Please enter some text or choose an image.');
+            return;
+        }
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Post'; }
+            if (!data.success) {
+                if (data.error) showToast(data.error);
+                return;
+            }
+
+            var feedContent = document.getElementById('feedContent');
+            var createBox = feedContent ? feedContent.querySelector('.create-post-box') : null;
+            if (createBox) {
+                createBox.insertAdjacentHTML('afterend', data.html);
+            } else if (feedContent) {
+                feedContent.insertAdjacentHTML('afterbegin', data.html);
+            }
+
+            var emptyEl = document.getElementById('feedEmpty');
+            if (emptyEl) emptyEl.style.display = 'none';
+
+            closeCreatePostModal();
+            form.reset();
+            var preview = document.getElementById('createPostPreview');
+            if (preview) preview.innerHTML = '';
+        }).catch(function(err) {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Post'; }
+            var msg = 'Failed to create post.';
+            if (err && err.message) msg = err.message;
+            if (err && err.status) msg = 'Server error (' + err.status + ').';
+            showToast(msg);
+        });
+    });
+
+    // Multi-image preview for create post
+    window.previewCreateImages = function(input) {
+        var preview = document.getElementById('createPostPreview');
+        if (!preview) return;
+        preview.innerHTML = '';
+        if (!input.files || input.files.length === 0) return;
+        for (var i = 0; i < input.files.length; i++) {
+            (function(file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var wrap = document.createElement('div');
+                    wrap.className = 'create-preview-thumb';
+                    wrap.innerHTML = '<img src="' + e.target.result + '" alt="" />' +
+                        '<button type="button" class="create-preview-remove" onclick="removeCreateImage(this, \'' + file.name + '\')"><i class="bi bi-x"></i></button>';
+                    preview.appendChild(wrap);
+                };
+                reader.readAsDataURL(file);
+            })(input.files[i]);
+        }
+    };
+
+    window.removeCreateImage = function(btn, fileName) {
+        var wrap = btn.closest('.create-preview-thumb');
+        if (wrap) wrap.remove();
+        var input = document.querySelector('#createPostForm input[name="images"]');
+        if (!input || !input.files) return;
+        var dt = new DataTransfer();
+        for (var i = 0; i < input.files.length; i++) {
+            if (input.files[i].name !== fileName) {
+                dt.items.add(input.files[i]);
+            }
+        }
+        input.files = dt.files;
+    };
+
+    // ===== Edit Post Modal =====
+    var editingPostCard = null;
+
+    window.openEditPostModal = function(postId, btn) {
+        editingPostCard = null;
+        if (btn) {
+            editingPostCard = btn.closest('.post-card');
+        }
+        if (!editingPostCard) {
+            editingPostCard = document.querySelector('.post-card[data-post-id="' + postId + '"]');
+        }
+        var overlay = document.getElementById('editPostOverlay');
+        if (!overlay) return;
+        overlay.classList.add('active');
+        overlay.innerHTML = '<div class="create-post-modal-container" style="transform:scale(0.95);"><div style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="bi bi-arrow-repeat" style="font-size:24px;animation:spin 0.8s linear infinite;display:block;margin-bottom:12px;"></i>Loading...</div></div>';
+        document.body.style.overflow = 'hidden';
+
+        fetch('/Post/Edit/' + postId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(resp) {
+            return resp.text();
+        }).then(function(html) {
+            overlay.innerHTML = html;
+            var container = overlay.querySelector('.create-post-modal-container');
+            if (container) {
+                container.style.transform = 'scale(0.95)';
+                requestAnimationFrame(function() {
+                    container.style.transform = 'scale(1)';
+                });
+            }
+            var textarea = overlay.querySelector('textarea');
+            if (textarea) setTimeout(function() { textarea.focus(); }, 200);
+        }).catch(function() {
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            showToast('Failed to load edit form.');
+        });
+    };
+
+    window.closeEditPostModal = function() {
+        var overlay = document.getElementById('editPostOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        editingPostCard = null;
+    };
+
+    // Close edit modal on backdrop click
+    document.addEventListener('click', function(e) {
+        var overlay = document.getElementById('editPostOverlay');
+        if (!overlay || !overlay.classList.contains('active')) return;
+        if (e.target === overlay) closeEditPostModal();
+    });
+
+    // Edit post image preview (new images)
+    window.previewEditImages = function(input) {
+        var container = document.getElementById('editPostImages');
+        if (!container) return;
+        if (!input.files || input.files.length === 0) return;
+        for (var i = 0; i < input.files.length; i++) {
+            (function(file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var wrap = document.createElement('div');
+                    wrap.className = 'edit-post-thumb edit-post-thumb-new';
+                    wrap.innerHTML = '<img src="' + e.target.result + '" alt="" />';
+                    container.appendChild(wrap);
+                };
+                reader.readAsDataURL(file);
+            })(input.files[i]);
+        }
+    };
+
+    // Delete existing image via AJAX
+    window.deleteEditImage = function(btn, imageId) {
+        showConfirm('Remove this image?', function() {
+            fetch('/Post/DeleteImage', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'imageId=' + imageId
+            }).then(function(resp) {
+                return resp.json();
+            }).then(function(data) {
+                if (data.success) {
+                    var thumb = btn.closest('.edit-post-thumb');
+                    if (thumb) thumb.remove();
+                } else {
+                    showToast(data.error || 'Failed to remove image.');
+                }
+            }).catch(function() {
+                showToast('Failed to remove image.');
+            });
+        });
+    };
+
+    // Edit post form submission (AJAX)
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form.closest('#editPostOverlay')) return;
+        e.preventDefault();
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        var contentInput = form.querySelector('textarea[name="Content"]');
+        var content = contentInput ? contentInput.value.trim() : '';
+
+        if (!content) {
+            showToast('Content is required.');
+            return;
+        }
+
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving...'; }
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Changes'; }
+            if (!data.success) {
+                if (data.error) showToast(data.error);
+                return;
+            }
+
+            if (editingPostCard) {
+                editingPostCard.outerHTML = data.html;
+            }
+
+            closeEditPostModal();
+            showToast('Post updated.');
+        }).catch(function() {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Changes'; }
+            showToast('Failed to update post.');
+        });
+    });
+
+    // ===== Facebook-style Lightbox (fullscreen split layout) =====
+    var lightboxPostId = 0;
+    var lightboxImages = [];
+    var lightboxIndex = 0;
+
+    window.openLightbox = function(postId, index) {
+        var existing = document.querySelector('.lightbox-overlay');
+        if (existing) existing.remove();
+
+        // Build the split layout
+        var overlay = document.createElement('div');
+        overlay.className = 'lightbox-overlay';
+        overlay.innerHTML =
+            '<div class="lightbox-left" id="lightboxLeft">' +
+                '<button class="lightbox-close-btn" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>' +
+                '<button class="lightbox-arrow lightbox-arrow-prev" onclick="lightboxPrev(event)"><i class="bi bi-chevron-left"></i></button>' +
+                '<img class="lightbox-main-img" id="lightboxMainImg" src="" alt="" />' +
+                '<button class="lightbox-arrow lightbox-arrow-next" onclick="lightboxNext(event)"><i class="bi bi-chevron-right"></i></button>' +
+                '<div class="lightbox-counter-badge" id="lightboxCounter"></div>' +
+            '</div>' +
+            '<div class="lightbox-right">' +
+                '<div class="lightbox-right-header">' +
+                    '<div class="lightbox-author-row">' +
+                        '<div id="lightboxAuthorPhoto"></div>' +
+                        '<div>' +
+                            '<a id="lightboxAuthorName" href="#"></a>' +
+                            '<div class="lightbox-time" id="lightboxTime"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="lightbox-stats">' +
+                        '<span class="lightbox-like-btn" id="lightboxLikeBtn" onclick="toggleLightboxLike()">' +
+                            '<i class="bi bi-heart"></i> <span id="lightboxLikeCount">0</span> likes' +
+                        '</span>' +
+                        '<span><i class="bi bi-chat-dots"></i> <span id="lightboxCommentCount">0</span> comments</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="lightbox-right-body">' +
+                    '<div class="lightbox-content-text" id="lightboxContentText"></div>' +
+                    '<div class="lightbox-comments-list" id="lightboxCommentsList">' +
+                        '<div class="lightbox-comments-empty">Loading comments...</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="lightbox-right-input">' +
+                    '<form class="comment-input" method="post" action="/Comment/Create" id="lightboxCommentForm">' +
+                        '<input type="hidden" name="postId" value="' + postId + '" />' +
+                        '<input name="content" class="comment-input-field" placeholder="Write a comment..." required />' +
+                        '<button type="submit" class="comment-submit">Post</button>' +
+                    '</form>' +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+
+        // Trigger active class for fade-in animation
+        requestAnimationFrame(function() {
+            overlay.classList.add('active');
+        });
+
+        lightboxPostId = postId;
+        lightboxIndex = index;
+
+        // Fetch post data from server
+        fetch('/Post/LightboxData/' + postId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (!data.success || !data.images || data.images.length === 0) {
+                closeLightbox();
+                return;
+            }
+            lightboxImages = data.images;
+            lightboxIndex = Math.min(index, data.images.length - 1);
+
+            // Populate author info
+            var photoHtml = data.authorPhoto
+                ? '<img src="' + escapeHtml(data.authorPhoto) + '" alt="" class="avatar avatar-sm" />'
+                : '<div class="avatar-circle avatar-sm" style="font-size:14px;">' + escapeHtml(data.authorName.charAt(0)) + '</div>';
+            document.getElementById('lightboxAuthorPhoto').innerHTML = photoHtml;
+            document.getElementById('lightboxAuthorName').textContent = data.authorName;
+            document.getElementById('lightboxAuthorName').href = '/Account/Profile/' + encodeURIComponent(data.authorId);
+            document.getElementById('lightboxTime').textContent = data.createdAt;
+
+            // Content text
+            var contentEl = document.getElementById('lightboxContentText');
+            if (data.content) {
+                contentEl.textContent = data.content;
+                contentEl.style.display = 'block';
+            } else {
+                contentEl.style.display = 'none';
+            }
+
+            // Like state
+            var likeBtn = document.getElementById('lightboxLikeBtn');
+            var likeCountEl = document.getElementById('lightboxLikeCount');
+            likeCountEl.textContent = data.likeCount;
+            if (data.isLiked) likeBtn.classList.add('liked');
+
+            // Comment count
+            document.getElementById('lightboxCommentCount').textContent = data.commentCount;
+
+            // Render comments
+            var commentsList = document.getElementById('lightboxCommentsList');
+            commentsList.innerHTML = '';
+            if (data.comments && data.comments.length > 0) {
+                data.comments.forEach(function(c) {
+                    var cPhoto = c.authorPhoto
+                        ? '<img src="' + escapeHtml(c.authorPhoto) + '" alt="" class="avatar avatar-sm" />'
+                        : '<div class="avatar-circle avatar-sm" style="font-size:12px;">' + escapeHtml(c.authorName.charAt(0)) + '</div>';
+                    var isOwn = c.authorId === '@currentUserId';
+                    var actionsHtml = isOwn
+                        ? '<div class="comment-actions">' +
+                            '<button type="button" class="btn-icon edit-comment" data-comment-id="' + c.commentId + '" title="Edit"><i class="bi bi-pencil" style="font-size:14px;"></i></button>' +
+                            '<form method="post" action="/Comment/Delete/' + c.commentId + '" class="d-inline">' +
+                                '<button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>' +
+                            '</form>' +
+                        '</div>'
+                        : '';
+                    commentsList.innerHTML +=
+                        '<div class="comment-item">' +
+                            cPhoto +
+                            '<div class="comment-content">' +
+                                '<a href="/Account/Profile/' + encodeURIComponent(c.authorId) + '" class="comment-author">' + escapeHtml(c.authorName) + '</a>' +
+                                '<div class="comment-text">' + escapeHtml(c.content) + '</div>' +
+                                '<div class="comment-time">' + escapeHtml(c.createdAt) + '</div>' +
+                            '</div>' +
+                            actionsHtml +
+                        '</div>';
+                });
+            } else {
+                commentsList.innerHTML = '<div class="lightbox-comments-empty">No comments yet. Be the first!</div>';
+            }
+
+            // Set initial image
+            updateLightboxImage();
+
+            // Show/hide arrows
+            toggleLightboxArrows();
+        }).catch(function() {
+            closeLightbox();
+            showToast('Failed to load post.');
+        });
+
+        // Close on left-side backdrop click
+        document.getElementById('lightboxLeft').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
+        });
+        document.addEventListener('keydown', lightboxKeydown);
+    };
+
+    function toggleLightboxArrows() {
+        var prevBtn = document.querySelector('.lightbox-arrow-prev');
+        var nextBtn = document.querySelector('.lightbox-arrow-next');
+        if (!prevBtn || !nextBtn) return;
+        if (lightboxImages.length <= 1) {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = 'flex';
+            nextBtn.style.display = 'flex';
+        }
+    }
+
+    function updateLightboxImage() {
+        var img = document.getElementById('lightboxMainImg');
+        if (img) img.src = lightboxImages[lightboxIndex];
+        var counter = document.getElementById('lightboxCounter');
+        if (counter) counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+    }
+
+    window.closeLightbox = function() {
+        var overlay = document.querySelector('.lightbox-overlay');
+        if (!overlay) return;
+        if (overlay.classList.contains('closing')) return;
+        overlay.classList.remove('active');
+        overlay.classList.add('closing');
+        document.removeEventListener('keydown', lightboxKeydown);
+        setTimeout(function() {
+            overlay.remove();
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    function lightboxKeydown(e) {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') lightboxPrev(e);
+        if (e.key === 'ArrowRight') lightboxNext(e);
+    }
+
+    function lightboxPrev(e) {
+        if (e) e.stopPropagation();
+        if (lightboxImages.length <= 1) return;
+        var img = document.getElementById('lightboxMainImg');
+        if (!img) return;
+        if (img.classList.contains('slide-out-left') || img.classList.contains('slide-out-right') || img.classList.contains('slide-in-right') || img.classList.contains('slide-in-left')) return;
+        img.classList.add('slide-out-right');
+        setTimeout(function() {
+            lightboxIndex = lightboxIndex <= 0 ? lightboxImages.length - 1 : lightboxIndex - 1;
+            img.src = lightboxImages[lightboxIndex];
+            img.classList.remove('slide-out-right');
+            img.classList.add('slide-in-left');
+            var counter = document.getElementById('lightboxCounter');
+            if (counter) counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+            setTimeout(function() {
+                img.classList.remove('slide-in-left');
+            }, 200);
+        }, 200);
+    }
+
+    function lightboxNext(e) {
+        if (e) e.stopPropagation();
+        if (lightboxImages.length <= 1) return;
+        var img = document.getElementById('lightboxMainImg');
+        if (!img) return;
+        if (img.classList.contains('slide-out-left') || img.classList.contains('slide-out-right') || img.classList.contains('slide-in-right') || img.classList.contains('slide-in-left')) return;
+        img.classList.add('slide-out-left');
+        setTimeout(function() {
+            lightboxIndex = lightboxIndex >= lightboxImages.length - 1 ? 0 : lightboxIndex + 1;
+            img.src = lightboxImages[lightboxIndex];
+            img.classList.remove('slide-out-left');
+            img.classList.add('slide-in-right');
+            var counter = document.getElementById('lightboxCounter');
+            if (counter) counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+            setTimeout(function() {
+                img.classList.remove('slide-in-right');
+            }, 200);
+        }, 200);
+    }
+
+    // Lightbox like toggle
+    window.toggleLightboxLike = function() {
+        var btn = document.getElementById('lightboxLikeBtn');
+        if (!btn) return;
+        var countEl = document.getElementById('lightboxLikeCount');
+        var wasLiked = btn.classList.contains('liked');
+        btn.classList.toggle('liked');
+
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = 'bi ' + (wasLiked ? 'bi-heart' : 'bi-heart-fill');
+
+        var count = parseInt(countEl.textContent || '0');
+        countEl.textContent = wasLiked ? count - 1 : count + 1;
+
+        fetch('/Post/ToggleLike?postId=' + lightboxPostId, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new URLSearchParams({ '__RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' })
+        }).catch(function() {
+            btn.classList.toggle('liked');
+            if (icon) icon.className = 'bi ' + (wasLiked ? 'bi-heart-fill' : 'bi-heart');
+            countEl.textContent = wasLiked ? count + 1 : count - 1;
+        });
+    };
+
+    // Intercept delete post clicks → custom confirm + AJAX delete
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.btn-icon[title="Delete"]');
+        if (!btn) return;
+        var form = btn.closest('form');
+        if (!form || !form.action || !form.action.includes('/Post/Delete/')) return;
+        e.preventDefault();
+        var postIdMatch = form.action.match(/\/Post\/Delete\/(\d+)/);
+        var postId = postIdMatch ? postIdMatch[1] : null;
+        showConfirm('Delete this post?', function() {
+            var token = form.querySelector('input[name="__RequestVerificationToken"]');
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form)
+        }).then(function(resp) {
+            if (!resp.ok) {
+                throw new Error('Server returned ' + resp.status);
+            }
+            return resp.json();
+        }).then(function(data) {
+                if (!data.success) {
+                    if (data.error) showToast(data.error);
+                    return;
+                }
+                // Remove from feed
+                if (postId) {
+                    var card = document.querySelector('.post-card[data-post-id="' + postId + '"]');
+                    if (card) card.remove();
+                }
+                // Close post modal if open
+                closePostModal();
+                showToast('Post deleted.');
+            }).catch(function() {
+                showToast('Failed to delete post.');
+            });
+        });
+    });
+
+    // Bookmark toggle
+    window.toggleBookmark = function(btn) {
+        var postId = btn.getAttribute('data-post-id');
+        if (!postId) return;
+        var wasBookmarked = btn.classList.contains('bookmarked');
+        var icon = btn.querySelector('i');
+
+        // Optimistic UI update
+        btn.classList.toggle('bookmarked');
+        if (icon) {
+            icon.className = 'bi ' + (wasBookmarked ? 'bi-bookmark' : 'bi-bookmark-fill');
+        }
+        btn.classList.add('pop');
+        setTimeout(function() { btn.classList.remove('pop'); }, 350);
+
+        fetch('/Bookmark/ToggleBookmark?postId=' + postId, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new URLSearchParams({ '__RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' })
+        }).then(function(resp) {
+            return resp.json();
+        }).then(function(data) {
+            if (!data.success) {
+                // Revert on failure
+                btn.classList.toggle('bookmarked');
+                if (icon) icon.className = 'bi ' + (wasBookmarked ? 'bi-bookmark-fill' : 'bi-bookmark');
+                showToast(data.error || 'Failed to bookmark.');
+            } else {
+                showToast(data.action === 'added' ? 'Post saved to bookmarks' : 'Bookmark removed');
+                btn.title = data.action === 'added' ? 'Remove bookmark' : 'Save post';
+            }
+        }).catch(function() {
+            // Revert on error
+            btn.classList.toggle('bookmarked');
+            if (icon) icon.className = 'bi ' + (wasBookmarked ? 'bi-bookmark-fill' : 'bi-bookmark');
+            showToast('Failed to connect.');
+        });
+    };
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str || ''));
+        return div.innerHTML;
+    }
 </script>
+
+<!-- Post Modal Overlay -->
+<div class="post-modal-overlay" id="postModalOverlay">
+    <div class="post-modal-container"></div>
+</div>
+
+<!-- Create Post Modal Overlay -->
+<div class="post-modal-overlay" id="createPostOverlay">
+    <div class="create-post-modal-container">
+        <div class="create-post-modal-header">
+            <h3>Create Post</h3>
+            <button type="button" class="post-modal-close" onclick="closeCreatePostModal()" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="create-post-modal-body">
+            <form id="createPostForm" method="post" asp-controller="Post" asp-action="Create" enctype="multipart/form-data">
+                <div class="create-post-user">
+                    @if (currentUser != null)
+                    {
+                        if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+                        {
+                            <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                        }
+                        else
+                        {
+                            <div class="avatar-circle avatar-sm" style="font-size:14px;">@(currentUser.DisplayName?[0] ?? '?')</div>
+                        }
+                        <span>@currentUser.DisplayName</span>
+                    }
+                </div>
+                <textarea name="Content" class="create-post-textarea" placeholder="What's on your mind?" rows="4"></textarea>
+                <div class="create-post-preview" id="createPostPreview"></div>
+                <div class="create-post-footer">
+                    <label class="create-post-photo-btn" title="Add photos">
+                        <i class="bi bi-image"></i> Add Photos
+                        <input name="images" type="file" accept="image/*" multiple hidden onchange="previewCreateImages(this)" />
+                    </label>
+                    <button type="submit" class="btn btn-primary">Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Post Modal Overlay -->
+<div class="post-modal-overlay" id="editPostOverlay">
+</div>
+
+<!-- Custom Confirm Dialog -->

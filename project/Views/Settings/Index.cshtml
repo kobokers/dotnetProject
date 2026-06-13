@@ -1,0 +1,161 @@
+@model project.Models.SettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+}
+@Html.AntiForgeryToken()
+
+<div class="feed-header">
+    <h1 class="feed-title">Settings</h1>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-heading">Appearance</h3>
+    <p class="settings-sub">Choose your theme</p>
+    <div class="theme-grid">
+        <label class="theme-card" data-theme-value="oled-dark">
+            <input type="radio" name="theme" value="oled-dark" class="theme-radio" />
+            <div class="theme-preview" style="background:#1e1f22;border-color:#3f4148;">
+                <div class="theme-preview-bar" style="background:#2b2d31;"></div>
+                <div class="theme-preview-content">
+                    <div class="theme-preview-line" style="background:#5865f2;width:50%;"></div>
+                    <div class="theme-preview-line" style="background:#3c3f45;width:80%;"></div>
+                    <div class="theme-preview-line" style="background:#3c3f45;width:60%;"></div>
+                </div>
+            </div>
+            <span class="theme-label">OLED Dark</span>
+            <span class="theme-desc">Deep dark, easy on the eyes</span>
+        </label>
+        <label class="theme-card" data-theme-value="teal-dark">
+            <input type="radio" name="theme" value="teal-dark" class="theme-radio" />
+            <div class="theme-preview" style="background:#1a2b2b;border-color:#2a4a4a;">
+                <div class="theme-preview-bar" style="background:#1e3636;"></div>
+                <div class="theme-preview-content">
+                    <div class="theme-preview-line" style="background:#0891b2;width:50%;"></div>
+                    <div class="theme-preview-line" style="background:#2a4a4a;width:80%;"></div>
+                    <div class="theme-preview-line" style="background:#2a4a4a;width:60%;"></div>
+                </div>
+            </div>
+            <span class="theme-label">Teal Dark</span>
+            <span class="theme-desc">Dark with teal accents</span>
+        </label>
+        <label class="theme-card" data-theme-value="light">
+            <input type="radio" name="theme" value="light" class="theme-radio" />
+            <div class="theme-preview" style="background:#ffffff;border-color:#e0e0e0;">
+                <div class="theme-preview-bar" style="background:#f5f5f5;"></div>
+                <div class="theme-preview-content">
+                    <div class="theme-preview-line" style="background:#5865f2;width:50%;"></div>
+                    <div class="theme-preview-line" style="background:#e0e0e0;width:80%;"></div>
+                    <div class="theme-preview-line" style="background:#e0e0e0;width:60%;"></div>
+                </div>
+            </div>
+            <span class="theme-label">Light</span>
+            <span class="theme-desc">Bright and clean</span>
+        </label>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-heading">Privacy</h3>
+    <p class="settings-sub">Public profile visibility</p>
+<label class="switch">
+    <input type="checkbox" id="profilePublicToggle" @(Model.Settings.ProfilePublic ? "checked" : "") />
+    <span class="slider round"></span>
+</label>
+<span class="ml-2">Public profile</span>
+</div>
+
+<style>
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  vertical-align: middle;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--text-muted);
+  transition: var(--transition-base);
+  border-radius: var(--radius-full);
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: var(--transition-base);
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--accent);
+}
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+.slider.round {
+  border-radius: var(--radius-full);
+}
+</style>
+
+@section Scripts {
+    <script>
+        // Apply saved theme on load
+        var saved = localStorage.getItem('mehkawan-theme') || 'oled-dark';
+        var activeRadio = document.querySelector('.theme-radio[value="' + saved + '"]');
+        if (activeRadio) {
+            activeRadio.checked = true;
+            activeRadio.closest('.theme-card').classList.add('active');
+        } else {
+            document.querySelector('.theme-radio[value="oled-dark"]').checked = true;
+            document.querySelector('.theme-card[data-theme-value="oled-dark"]').classList.add('active');
+        }
+
+        // Theme selection
+        document.querySelectorAll('.theme-radio').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                if (!this.checked) return;
+                document.querySelectorAll('.theme-card').forEach(function(c) {
+                    c.classList.remove('active');
+                });
+                this.closest('.theme-card').classList.add('active');
+                var theme = this.value;
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('mehkawan-theme', theme);
+            });
+        });
+        // Public profile toggle
+    var publicToggle = document.getElementById('profilePublicToggle');
+    if (publicToggle) {
+        publicToggle.addEventListener('change', function () {
+            var isPublic = publicToggle.checked;
+            fetch('@Url.Action("UpdateProfilePublic", "Settings")', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ isPublic: isPublic })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) alert('Failed to save profile visibility');
+            })
+            .catch(err => alert('Error: ' + err));
+        });
+    }
+</script>
+}

@@ -1,0 +1,121 @@
+@model List<Bookmark>
+@{
+    ViewData["Title"] = "Bookmarks";
+}
+
+<div class="feed-header">
+    <h1 class="feed-title">Bookmarks</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card-empty">
+        <i class="bi bi-bookmark"></i>
+        <p>No saved posts yet</p>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:8px;">
+            Tap the bookmark icon on any post to save it here
+        </p>
+    </div>
+}
+else
+{
+    <div id="bookmarkFeed">
+        @foreach (var bookmark in Model)
+        {
+            var post = bookmark.Post;
+            var likeCount = post.Likes?.Count ?? 0;
+            var commentCount = post.Comments?.Count ?? 0;
+
+            <div class="post-card" data-post-id="@post.PostId">
+                <div class="post-card-header">
+                    @if (post.User != null && !string.IsNullOrEmpty(post.User.ProfilePhoto))
+                    {
+                        <img src="@post.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                    }
+                    else if (post.User != null)
+                    {
+                        <div class="avatar-circle avatar-sm" style="font-size:14px;">@(post.User.DisplayName?[0] ?? '?')</div>
+                    }
+                    <div class="post-card-author">
+                        <a asp-controller="Account" asp-action="Profile" asp-route-id="@post.UserId">@(post.User?.DisplayName ?? "Unknown")</a>
+                        <div class="post-card-time">@post.CreatedAt.ToString("MMM dd, yyyy")</div>
+                    </div>
+                </div>
+
+                <div class="post-card-content">@post.Content</div>
+
+                @if (post.PostImages.Count > 0)
+                {
+                    var images = post.PostImages.OrderBy(pi => pi.Order).ToList();
+                    <div class="post-image-grid" data-count="@images.Count">
+                        @for (int i = 0; i < images.Count; i++)
+                        {
+                            var cls = i == 0 ? "grid-first" : "";
+                            <div class="grid-cell @cls" onclick="openLightbox(@post.PostId, @i)">
+                                <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                                @if (i == 3 && images.Count > 4)
+                                {
+                                    <div class="grid-overlay">+@(images.Count - 4)</div>
+                                }
+                            </div>
+                            if (i == 3) break;
+                        }
+                    </div>
+                }
+
+                <div class="post-card-stats">
+                    <span><i class="bi bi-heart" style="color:var(--accent);"></i> @likeCount</span>
+                    <span><i class="bi bi-chat-dots"></i> @commentCount Comments</span>
+                </div>
+
+                <div class="post-card-actions">
+                    <form method="post" asp-controller="Post" asp-action="ToggleLike" asp-route-postId="@post.PostId" style="flex:1;">
+                        <button type="submit" class="post-action-btn">
+                            <i class="bi bi-heart"></i> Like
+                        </button>
+                    </form>
+                    <button type="button" class="post-action-btn bookmark-btn" onclick="removeBookmark(@post.PostId, this)" aria-label="Remove bookmark">
+                        <i class="bi bi-bookmark-fill"></i>
+                    </button>
+                    <button type="button" class="post-action-btn" onclick="openPostModal(@post.PostId)">
+                        <i class="bi bi-chat-dots"></i> Comment
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<script>
+    window.removeBookmark = function(postId, btn) {
+        showConfirm('Remove this bookmark?', function() {
+            fetch('/Bookmark/ToggleBookmark?postId=' + postId, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function(resp) {
+                return resp.json();
+            }).then(function(data) {
+                if (data.success) {
+                    var card = btn.closest('.post-card');
+                    if (card) {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(-20px)';
+                        card.style.transition = 'all 0.3s ease';
+                        setTimeout(function() {
+                            card.remove();
+                            var remaining = document.querySelectorAll('#bookmarkFeed .post-card');
+                            if (remaining.length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                    showToast('Bookmark removed');
+                } else {
+                    showToast('Failed to remove bookmark.');
+                }
+            }).catch(function() {
+                showToast('Failed to remove bookmark.');
+            });
+        });
+    };
+</script>

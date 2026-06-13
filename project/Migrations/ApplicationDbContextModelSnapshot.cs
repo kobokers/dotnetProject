@@ -452,6 +452,31 @@ namespace project.Migrations
                     b.ToTable("Posts");
                 });
 
+            modelBuilder.Entity("project.Models.PostImage", b =>
+                {
+                    b.Property<int>("PostImageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostImageId"));
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PostImageId");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("PostImages");
+                });
+
             modelBuilder.Entity("project.Models.Story", b =>
                 {
                     b.Property<int>("StoryId")
@@ -460,11 +485,19 @@ namespace project.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoryId"));
 
+                    b.Property<string>("BackgroundColor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("FontStyle")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
@@ -635,6 +668,17 @@ namespace project.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("project.Models.PostImage", b =>
+                {
+                    b.HasOne("project.Models.Post", "Post")
+                        .WithMany("PostImages")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("project.Models.Story", b =>
                 {
                     b.HasOne("project.Models.ApplicationUser", "User")
@@ -670,6 +714,8 @@ namespace project.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("PostImages");
                 });
 #pragma warning restore 612, 618
         }

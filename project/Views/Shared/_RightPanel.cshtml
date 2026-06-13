@@ -61,11 +61,11 @@
 <div class="right-panel-section">
     <form asp-controller="Account" asp-action="Search" method="get" class="search-wrapper">
         <i class="bi bi-search search-icon"></i>
-        <input name="query" class="search-input" type="text" placeholder="Search by name or Friend Code e.g. akmal#1234" />
+        <input name="query" class="search-input" type="text" placeholder="Search users..." />
     </form>
 </div>
 
-<div class="right-panel-section">
+<div class="right-panel-card">
     <div class="stats-row">
         <div class="stat-item">
             <span class="stat-number">@postCount</span>
@@ -84,7 +84,7 @@
 
 @if (onlineFriends.Any())
 {
-    <div class="right-panel-section">
+    <div class="right-panel-card">
         <div class="section-title">Online Friends</div>
         @foreach (var friend in onlineFriends)
         {
@@ -108,7 +108,7 @@
 
 @if (recentActivity.Any())
 {
-    <div class="right-panel-section">
+    <div class="right-panel-card">
         <div class="section-title">Recent Activity</div>
         @foreach (var activity in recentActivity)
         {
@@ -120,7 +120,7 @@
     </div>
 }
 
-<div class="right-panel-section">
+<div class="right-panel-card">
     <div class="section-title">Trending Topics</div>
     <div>
         <a href="#" class="hashtag-pill">#mehkawan</a>

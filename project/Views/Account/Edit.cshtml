@@ -3,91 +3,119 @@
     ViewData["Title"] = "Edit Profile";
 }
 
-<div class="feed-header">
-    <h1 class="feed-title">Edit Profile</h1>
-</div>
+<div class="edit-profile-page">
+    <div class="edit-profile-container">
 
-<div class="card">
-    <div class="card-body">
-        <div class="edit-tabs">
-            <button class="edit-tab-btn active" data-tab="basic" onclick="switchEditTab('basic')">Basic Info</button>
-            <button class="edit-tab-btn" data-tab="appearance" onclick="switchEditTab('appearance')">Appearance</button>
+        <!-- Back -->
+        <div class="edit-topbar">
+            <a asp-action="Profile" class="btn-icon" title="Back to Profile"><i class="bi bi-arrow-left"></i></a>
+            <h1 class="edit-title">Edit Profile</h1>
         </div>
 
         <form method="post" enctype="multipart/form-data">
-            <div id="editTabBasic" class="edit-tab-panel active">
-                <div class="form-group">
-                    <label asp-for="DisplayName" class="form-label">Display Name</label>
-                    <input asp-for="DisplayName" class="form-input" placeholder="e.g. John Doe" />
-                    <span asp-validation-for="DisplayName" class="text-danger"></span>
+            <!-- Cover Photo -->
+            <div class="edit-cover-wrap">
+                <div class="edit-cover" id="editCoverPreview" style="@(!string.IsNullOrEmpty(Model.CoverPhoto) ? $"background-image:url('/uploads/profiles/{Model.CoverPhoto}')" : "")">
+                    <div class="edit-cover-overlay"></div>
+                    <label class="edit-cover-btn">
+                        <i class="bi bi-camera"></i> Change Cover
+                        <input name="coverPhotoFile" type="file" accept="image/*" hidden onchange="previewCover(this)" />
+                    </label>
                 </div>
+
+                <div class="edit-avatar-wrap">
+                    <div class="edit-avatar">
+                        @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
+                        {
+                            <img src="@Model.ProfilePhoto" alt="" id="editAvatarImg" />
+                        }
+                        else
+                        {
+                            <div class="edit-avatar-circle" id="editAvatarFallback">@(Model.DisplayName?[0] ?? '?')</div>
+                        }
+                        <label class="edit-avatar-overlay">
+                            <i class="bi bi-camera"></i>
+                            <input name="profilePhoto" type="file" accept="image/*" hidden onchange="previewAvatar(this)" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="edit-form-body">
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input asp-for="DisplayName" class="form-input" placeholder="e.g. John Doe" />
+                    <span asp-validation-for="DisplayName" class="form-validation"></span>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Username</label>
-                    <input name="username" class="form-input" value="@Model.UserName" placeholder="e.g. john_doe" readonly style="opacity:0.6;" />
+                    <div class="form-input-readonly">@@@Model.UserName</div>
+                    <span class="form-hint">Username cannot be changed</span>
                 </div>
+
                 <div class="form-group">
                     <label asp-for="Bio" class="form-label">Bio</label>
                     <textarea asp-for="Bio" class="form-input" rows="4" placeholder="Tell people about yourself..."></textarea>
                 </div>
+
                 <div class="form-group">
-                    <label asp-for="Location" class="form-label">Location</label>
+                    <label class="form-label">Location</label>
                     <input asp-for="Location" class="form-input" placeholder="e.g. Kuala Lumpur, Malaysia" />
                 </div>
-            </div>
 
-            <div id="editTabAppearance" class="edit-tab-panel">
-                <div class="text-center mb-4">
-                    @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
-                    {
-                        <img src="@Model.ProfilePhoto" alt="" class="avatar avatar-lg avatar-active mb-2" />
-                    }
-                    else
-                    {
-                        <div class="avatar-circle avatar-lg avatar-active" style="font-size:32px;margin:0 auto 8px;">@(Model.DisplayName?[0] ?? '?')</div>
-                    }
-                    <div class="file-upload-wrapper" style="justify-content:center;">
-                        <label class="file-upload-btn">
-                            <i class="bi bi-camera"></i> Change Photo
-                            <input name="profilePhoto" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
-                        </label>
-                        <span class="file-upload-name">No file chosen</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Cover Photo</label>
-                    <div class="file-upload-wrapper" style="justify-content:flex-start;">
-                        <label class="file-upload-btn">
-                            <i class="bi bi-image"></i> Choose Cover
-                            <input name="coverPhotoFile" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
-                        </label>
-                        <span class="file-upload-name">No file chosen</span>
-                    </div>
-                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
+                    <i class="bi bi-check-lg"></i> Save Changes
+                </button>
             </div>
-
-            <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
         </form>
 
-        <form method="post" asp-action="DeleteAccount" class="mt-4" onsubmit="return confirm('Are you sure you want to delete your account? This cannot be undone.');">
-            <button type="submit" class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);">Delete Account</button>
-        </form>
-
-        <div class="auth-link">
-            <a asp-action="Profile" class="btn btn-outline btn-block" style="text-align:center;">Back to Profile</a>
+        <!-- Danger Zone -->
+        <div class="edit-danger-zone">
+            <h3 class="edit-danger-heading"><i class="bi bi-exclamation-triangle"></i> Danger Zone</h3>
+            <p class="edit-danger-desc">Once you delete your account, there is no going back. Please be certain.</p>
+            <form method="post" asp-action="DeleteAccount" data-confirm="This will permanently delete your account. Are you sure?">
+                <button type="submit" class="btn btn-danger btn-block">
+                    <i class="bi bi-trash"></i> Delete Account
+                </button>
+            </form>
         </div>
+
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        function switchEditTab(tab) {
-            document.querySelectorAll('.edit-tab-btn').forEach(function(btn) {
-                btn.classList.toggle('active', btn.dataset.tab === tab);
-            });
-            document.querySelectorAll('.edit-tab-panel').forEach(function(panel) {
-                panel.classList.toggle('active', panel.id === 'editTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
-            });
+        function previewCover(input) {
+            if (!input.files || !input.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var wrap = input.closest('.edit-cover');
+                wrap.style.backgroundImage = "url('" + e.target.result + "')";
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function previewAvatar(input) {
+            if (!input.files || !input.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.getElementById('editAvatarImg');
+                var fb = document.getElementById('editAvatarFallback');
+                if (!img) {
+                    var wrap = document.querySelector('.edit-avatar');
+                    img = document.createElement('img');
+                    img.id = 'editAvatarImg';
+                    wrap.insertBefore(img, wrap.querySelector('.edit-avatar-overlay'));
+                    if (fb) fb.style.display = 'none';
+                }
+                img.src = e.target.result;
+                img.style.display = 'block';
+                if (fb) fb.style.display = 'none';
+            };
+            reader.readAsDataURL(input.files[0]);
         }
     </script>
 }

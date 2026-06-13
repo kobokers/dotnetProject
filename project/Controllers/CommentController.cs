@@ -21,20 +21,24 @@ public class CommentController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(int postId, string content)
     {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
         if (string.IsNullOrWhiteSpace(content))
         {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Comment cannot be empty." });
             TempData["Error"] = "Comment cannot be empty.";
-            return RedirectToAction("Details", "Post", new { id = postId });
+            return RedirectToAction("Index", "Post");
         }
 
-        var user = await _userManager.GetUserAsync(User);
         var post = await _context.Posts.FindAsync(postId);
         if (post == null) return NotFound();
 
         var comment = new Comment
         {
             PostId = postId,
-            UserId = user!.Id,
+            UserId = user.Id,
             Content = content,
             CreatedAt = DateTime.UtcNow
         };
@@ -47,7 +51,25 @@ public class CommentController : Controller
             await NotificationController.CreateAsync(_context, post.UserId, NotificationType.Comment, user.Id, postId, $"{user.DisplayName} commented on your post");
         }
 
-        return RedirectToAction("Details", "Post", new { id = postId });
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Json(new
+            {
+                success = true,
+                commentId = comment.CommentId,
+                content = comment.Content,
+                createdAt = comment.CreatedAt.ToString("MMM dd, HH:mm"),
+                userDisplayName = user.DisplayName,
+                userProfilePhoto = user.ProfilePhoto,
+                userId = user.Id,
+                postId
+            });
+        }
+
+        var referer = Request.Headers["Referer"].ToString();
+        if (string.IsNullOrEmpty(referer)) return RedirectToAction("Index", "Post");
+        var openParam = referer.Contains('?') ? '&' : '?';
+        return Redirect($"{referer}{openParam}openComments={postId}");
     }
 
     [HttpGet]
@@ -68,35 +90,75 @@ public class CommentController : Controller
     [HttpPost]
     public async Task<IActionResult> Edit(int id, string content)
     {
-        var comment = await _context.Comments.FindAsync(id);
-        if (comment == null) return NotFound();
-
         var user = await _userManager.GetUserAsync(User);
-        if (comment.UserId != user!.Id) return Forbid();
+        if (user == null) return Challenge();
+
+        var comment = await _context.Comments.FindAsync(id);
+        if (comment == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Comment not found." });
+            return NotFound();
+        }
+
+        if (comment.UserId != user.Id)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Unauthorized." });
+            return Forbid();
+        }
 
         if (string.IsNullOrWhiteSpace(content))
         {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Content cannot be empty." });
             ModelState.AddModelError("", "Content is required.");
             return View(comment);
         }
 
         comment.Content = content;
         await _context.SaveChangesAsync();
-        return RedirectToAction("Details", "Post", new { id = comment.PostId });
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            return Json(new { success = true, content, commentId = comment.CommentId });
+
+        var referer = Request.Headers["Referer"].ToString();
+        if (string.IsNullOrEmpty(referer)) return RedirectToAction("Index", "Post");
+        var openParam = referer.Contains('?') ? '&' : '?';
+        return Redirect($"{referer}{openParam}openComments={comment.PostId}");
     }
 
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {
-        var comment = await _context.Comments.FindAsync(id);
-        if (comment == null) return NotFound();
-
         var user = await _userManager.GetUserAsync(User);
-        if (comment.UserId != user!.Id) return Forbid();
+        if (user == null) return Challenge();
+
+        var comment = await _context.Comments.FindAsync(id);
+        if (comment == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Comment not found." });
+            return NotFound();
+        }
+
+        if (comment.UserId != user.Id)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Unauthorized." });
+            return Forbid();
+        }
 
         var postId = comment.PostId;
         _context.Comments.Remove(comment);
         await _context.SaveChangesAsync();
-        return RedirectToAction("Details", "Post", new { id = postId });
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            return Json(new { success = true, postId });
+
+        var referer = Request.Headers["Referer"].ToString();
+        if (string.IsNullOrEmpty(referer)) return RedirectToAction("Index", "Post");
+        var openParam = referer.Contains('?') ? '&' : '?';
+        return Redirect($"{referer}{openParam}openComments={postId}");
     }
 }

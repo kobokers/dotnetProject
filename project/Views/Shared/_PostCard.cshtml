@@ -1,0 +1,77 @@
+@model Post
+@inject ApplicationDbContext AppDbContext
+@inject UserManager<ApplicationUser> UserManager
+@using Microsoft.EntityFrameworkCore
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var currentUserId = currentUser?.Id;
+
+    var likeCount = await AppDbContext.Likes.CountAsync(l => l.PostId == Model.PostId);
+    var commentCount = await AppDbContext.Comments.CountAsync(c => c.PostId == Model.PostId);
+    var isLiked = currentUser != null && await AppDbContext.Likes.AnyAsync(l => l.PostId == Model.PostId && l.UserId == currentUser.Id);
+}
+<div class="post-card" data-post-id="@Model.PostId">
+    <div class="post-card-header">
+        @if (Model.User != null && !string.IsNullOrEmpty(Model.User.ProfilePhoto))
+        {
+            <img src="@Model.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
+        }
+        else if (Model.User != null)
+        {
+            <div class="avatar-circle avatar-sm" style="font-size:14px;">@(Model.User.DisplayName?[0] ?? '?')</div>
+        }
+        <div class="post-card-author">
+            <a asp-controller="Account" asp-action="Profile" asp-route-id="@Model.UserId">@(Model.User?.DisplayName ?? "Unknown")</a>
+            <div class="post-card-time">@Model.CreatedAt.ToString("MMM dd, yyyy")</div>
+        </div>
+        @if (Model.UserId == currentUserId)
+        {
+            <div class="flex gap-2">
+                <button type="button" class="btn-icon" title="Edit" onclick="openEditPostModal(@Model.PostId, this)"><i class="bi bi-pencil"></i></button>
+                <form method="post" asp-controller="Post" asp-action="Delete" asp-route-id="@Model.PostId" class="d-inline">
+                    <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="color:var(--danger);"></i></button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <div class="post-card-content">@Model.Content</div>
+
+    @if (Model.PostImages.Count > 0)
+    {
+        var images = Model.PostImages.OrderBy(pi => pi.Order).ToList();
+        <div class="post-image-grid" data-count="@images.Count">
+            @for (int i = 0; i < images.Count; i++)
+            {
+                var cls = i == 0 ? "grid-first" : "";
+                <div class="grid-cell @cls" onclick="openLightbox(@Model.PostId, @i)">
+                    <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                    @if (i == 3 && images.Count > 4)
+                    {
+                        <div class="grid-overlay">+@(images.Count - 4)</div>
+                    }
+                </div>
+                if (i == 3) break;
+            }
+        </div>
+    }
+
+    <div class="post-card-stats">
+        <span><i class="bi bi-heart" style="color:var(--accent);"></i> @likeCount</span>
+        <span><i class="bi bi-chat-dots"></i> @commentCount Comments</span>
+    </div>
+
+    <div class="post-card-actions">
+        @if (currentUser != null)
+        {
+            <form method="post" asp-controller="Post" asp-action="ToggleLike" asp-route-postId="@Model.PostId" style="flex:1;">
+                <button type="submit" class="post-action-btn @(isLiked ? "liked" : "")">
+                    <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")"></i> Like
+                </button>
+            </form>
+        }
+        <button type="button" class="post-action-btn" onclick="openPostModal(@Model.PostId)">
+            <i class="bi bi-chat-dots"></i> Comment
+        </button>
+    </div>
+</div>

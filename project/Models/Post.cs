@@ -8,11 +8,12 @@ public class Post
 
     public string UserId { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Content is required.")]
-    [StringLength(5000, MinimumLength = 1, ErrorMessage = "Content must be between 1 and 5000 characters.")]
+    [StringLength(5000, ErrorMessage = "Content must be at most 5000 characters.")]
     public string Content { get; set; } = string.Empty;
 
     public string? ImageUrl { get; set; }
+
+    public ICollection<PostImage> PostImages { get; set; } = new List<PostImage>();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

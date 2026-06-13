@@ -12,11 +12,11 @@
 
 @if (TempData["Success"] != null)
 {
-    <div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--accent-text);">@TempData["Success"]</div>
+    <div class="auth-error" style="border-color:var(--success);color:var(--success);background:rgba(59,165,93,0.08);">@TempData["Success"]</div>
 }
 @if (TempData["Error"] != null)
 {
-    <div style="background:var(--accent-soft);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--danger);">@TempData["Error"]</div>
+    <div class="auth-error">@TempData["Error"]</div>
 }
 
 @if (!Model.Any())
@@ -45,7 +45,7 @@
                 }
                 <a asp-controller="Account" asp-action="Profile" asp-route-id="@friendUser.Id" class="friend-card-name">@friendUser.DisplayName</a>
                 <div class="friend-card-sub">@@@friendUser.UserName</div>
-                <form method="post" asp-action="Remove" asp-route-friendId="@friendUser.Id" onsubmit="return confirm('Remove @friendUser.DisplayName from your friends?');">
+                <form method="post" asp-action="Remove" asp-route-friendId="@friendUser.Id" data-confirm="Remove @friendUser.DisplayName from your friends?">
                     <button type="submit" class="btn btn-outline btn-sm"><i class="bi bi-person-dash"></i> Unfriend</button>
                 </form>
             </div>

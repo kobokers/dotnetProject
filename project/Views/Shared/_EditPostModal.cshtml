@@ -1,0 +1,54 @@
+@model Post
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+}
+<div class="create-post-modal-container">
+    <div class="create-post-modal-header">
+        <h3>Edit Post</h3>
+        <button type="button" class="post-modal-close" onclick="closeEditPostModal()" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="create-post-modal-body">
+        <form method="post" asp-controller="Post" asp-action="Edit" asp-route-id="@Model.PostId" enctype="multipart/form-data">
+            <div class="create-post-user">
+                @if (currentUser != null)
+                {
+                    if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+                    {
+                        <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                    }
+                    else
+                    {
+                        <div class="avatar-circle avatar-sm" style="font-size:14px;">@(currentUser.DisplayName?[0] ?? '?')</div>
+                    }
+                    <span>@currentUser.DisplayName</span>
+                }
+            </div>
+            <textarea name="Content" class="create-post-textarea" placeholder="What's on your mind?" rows="4">@Model.Content</textarea>
+            <div class="edit-post-images" id="editPostImages">
+                @if (Model.PostImages.Count > 0)
+                {
+                    foreach (var img in Model.PostImages.OrderBy(pi => pi.Order))
+                    {
+                        <div class="edit-post-thumb" data-image-id="@img.PostImageId">
+                            <img src="@img.ImageUrl" alt="" />
+                            <button type="button" class="edit-post-thumb-del" onclick="deleteEditImage(this, @img.PostImageId)" title="Remove"><i class="bi bi-x"></i></button>
+                        </div>
+                    }
+                }
+            </div>
+            <div class="create-post-footer">
+                <label class="create-post-photo-btn" title="Add photos">
+                    <i class="bi bi-image"></i> Add Photos
+                    <input name="images" type="file" accept="image/*" multiple hidden onchange="previewEditImages(this)" />
+                </label>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-outline" onclick="closeEditPostModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

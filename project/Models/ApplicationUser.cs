@@ -5,6 +5,8 @@ namespace project.Models;
 
 public class ApplicationUser : IdentityUser
 {
+    public string? UserSettings { get; set; }
+
     [Required(ErrorMessage = "Display name is required.")]
     public string? DisplayName { get; set; }
     public string? Bio { get; set; }

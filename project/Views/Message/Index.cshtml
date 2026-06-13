@@ -5,10 +5,10 @@
     ViewBag.BodyClass = "messages-page";
 }
 
-<div class="messages-layout" style="display:flex; width:100%; min-width:0; height:calc(100vh - 60px); overflow:hidden;">
+<div class="messages-layout">
     
-    <div class="messages-sidebar" style="width:280px; min-width:280px; flex-shrink:0; border-right:1px solid var(--border-color); overflow-y:auto; background:var(--bg-secondary); display:flex; flex-direction:column;">
-        <h2 style="padding:20px 16px; font-size:18px; font-weight:700; border-bottom:1px solid var(--border-color); margin:0;">Messages</h2>
+    <div class="messages-sidebar">
+        <h2>Messages</h2>
         <div class="msg-friend-list">
             @if (Model.Count == 0)
             {
@@ -42,131 +42,151 @@
         </div>
     </div>
     
-    <div class="messages-main" style="flex:1; min-width:0; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--bg-primary);">
-        <div class="empty-chat" style="text-align:center; color:var(--text-secondary);">
-            <i class="bi bi-chat-dots" style="font-size:48px; margin-bottom:16px; display:block; color:var(--text-muted);"></i>
-            <h3 style="font-size:18px; font-weight:600; margin:0 0 8px; color:var(--text-primary);">Select a conversation</h3>
-            <p style="margin:0; font-size:14px;">Choose a friend from the list</p>
+    <div class="messages-main">
+        <div class="empty-chat">
+            <i class="bi bi-chat-dots"></i>
+            <h3>Select a conversation</h3>
+            <p>Choose a friend from the list</p>
         </div>
     </div>
 </div>
 
 <style>
-.messages-layout {
-    display: flex;
-    width: 100%;
-    min-width: 0;
-    height: calc(100vh - 60px);
-    overflow: hidden;
-}
-.messages-sidebar {
-    width: 280px;
-    min-width: 280px;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border-color);
-    overflow-y: auto;
-    background: var(--bg-secondary);
-    display: flex;
-    flex-direction: column;
-}
-.messages-sidebar h2 {
-    padding: 20px 16px;
-    font-size: 18px;
-    font-weight: 700;
-    border-bottom: 1px solid var(--border-color);
-    margin: 0;
-}
-.messages-main {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background: var(--bg-primary);
-}
-.conversation-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
-    transition: background 0.2s;
-}
-.conversation-item:hover {
-    background: var(--bg-hover);
-}
-.msg-friend-list {
-    flex: 1;
-    overflow-y: auto;
-}
-.msg-empty {
-    padding: 32px 20px;
-    color: var(--text-secondary);
-    text-align: center;
-    font-size: 14px;
-}
-.msg-friend-info {
-    flex: 1;
-    min-width: 0;
-}
-.msg-friend-name {
-    font-weight: 600;
-    font-size: 14px;
-}
-.msg-friend-preview {
-    font-size: 13px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.msg-friend-time {
-    font-size: 11px;
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-.empty-chat {
-    text-align: center;
-    color: var(--text-secondary);
-}
-.empty-chat i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    display: block;
-    color: var(--text-muted);
-}
-.empty-chat h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 8px;
-    color: var(--text-primary);
-}
-.empty-chat p {
-    margin: 0;
-    font-size: 14px;
-}
-@@media (max-width: 768px) {
     .messages-layout {
-        height: auto;
-        min-height: calc(100vh - 140px);
-    }
-    .messages-main {
-        display: none;
-    }
-    .messages-sidebar {
+        display: flex;
         width: 100%;
         min-width: 0;
-        border-right: none;
+        height: 100vh;
+        overflow: hidden;
     }
+
+    .messages-sidebar {
+        width: 320px;
+        min-width: 320px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+        background: var(--bg-secondary);
+        display: flex;
+        flex-direction: column;
+    }
+
     .messages-sidebar h2 {
-        padding: 12px 16px;
+        padding: 20px 16px;
+        font-size: 18px;
+        font-weight: 700;
+        border-bottom: 1px solid var(--border-color);
+        margin: 0;
+        color: var(--text-primary);
     }
+
+    .messages-main {
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: var(--bg-primary);
+    }
+
     .conversation-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
         padding: 12px 16px;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.15s ease;
     }
-}
+
+    .conversation-item:hover {
+        background: var(--bg-hover);
+        text-decoration: none;
+    }
+
+    .msg-friend-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .msg-empty {
+        padding: 32px 20px;
+        color: var(--text-secondary);
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .msg-friend-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .msg-friend-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-primary);
+    }
+
+    .msg-friend-preview {
+        font-size: 13px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .msg-friend-time {
+        font-size: 11px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    .empty-chat {
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .empty-chat i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+        color: var(--text-muted);
+    }
+
+    .empty-chat h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px;
+        color: var(--text-primary);
+    }
+
+    .empty-chat p {
+        margin: 0;
+        font-size: 14px;
+    }
+
+    @@media (max-width: 768px) {
+        .messages-layout {
+            height: auto;
+            min-height: calc(100vh - 140px);
+        }
+        .messages-main {
+            display: none;
+        }
+        .messages-sidebar {
+            width: 100%;
+            min-width: 0;
+            border-right: none;
+        }
+        .messages-sidebar h2 {
+            padding: 12px 16px;
+        }
+        .conversation-item {
+            padding: 12px 16px;
+        }
+    }
 </style>

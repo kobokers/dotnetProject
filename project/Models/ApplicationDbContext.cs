@@ -17,6 +17,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Story> Stories => Set<Story>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PostImage> PostImages => Set<PostImage>();
+    public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -37,6 +39,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasMany(p => p.Likes)
                 .WithOne(l => l.Post)
                 .HasForeignKey(l => l.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(p => p.PostImages)
+                .WithOne(pi => pi.Post)
+                .HasForeignKey(pi => pi.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

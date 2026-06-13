@@ -25,33 +25,88 @@ public class StoryController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(IFormFile image)
+    public async Task<IActionResult> Create(IFormFile? image, string? content, string? backgroundColor, string? fontStyle)
     {
-        if (image == null || image.Length == 0)
-        {
-            ModelState.AddModelError("", "Please select an image.");
-            return View();
-        }
-
         var user = await _userManager.GetUserAsync(User);
-        var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(image.FileName)}";
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "stories", fileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        if ((image == null || image.Length == 0) && string.IsNullOrWhiteSpace(content))
         {
-            await image.CopyToAsync(stream);
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Please select an image or enter text." });
+            ModelState.AddModelError("", "Please select an image or enter text.");
+            return View();
         }
 
         var story = new Story
         {
             UserId = user!.Id,
-            ImageUrl = $"/uploads/stories/{fileName}",
             CreatedAt = DateTime.UtcNow
         };
+
+        if (image != null && image.Length > 0)
+        {
+            var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(image.FileName)}";
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "stories", fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream);
+            }
+
+            story.ImageUrl = $"/uploads/stories/{fileName}";
+        }
+        else
+        {
+            story.Content = content;
+            story.BackgroundColor = backgroundColor ?? "#5865f2";
+            story.FontStyle = fontStyle ?? "sans-serif";
+        }
 
         _context.Stories.Add(story);
         await _context.SaveChangesAsync();
 
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Json(new
+            {
+                success = true,
+                storyId = story.StoryId,
+                imageUrl = story.ImageUrl ?? "",
+                content = story.Content ?? "",
+                backgroundColor = story.BackgroundColor ?? "",
+                fontStyle = story.FontStyle ?? "",
+                userId = user.Id,
+                userDisplayName = user.DisplayName ?? user.UserName,
+                userProfilePhoto = user.ProfilePhoto ?? ""
+            });
+        }
+
         return RedirectToAction("Index", "Post");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var story = await _context.Stories.FindAsync(id);
+        if (story == null)
+            return Json(new { success = false, error = "Story not found." });
+
+        var user = await _userManager.GetUserAsync(User);
+        if (story.UserId != user!.Id)
+            return Json(new { success = false, error = "Unauthorized." });
+
+        if (!string.IsNullOrEmpty(story.ImageUrl))
+        {
+            var filePath = Path.Combine(
+                Directory.GetCurrentDirectory(), "wwwroot",
+                story.ImageUrl.TrimStart('/'));
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+        }
+
+        _context.Stories.Remove(story);
+        await _context.SaveChangesAsync();
+
+        return Json(new { success = true });
     }
 }

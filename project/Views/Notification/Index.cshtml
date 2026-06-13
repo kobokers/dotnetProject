@@ -7,7 +7,7 @@
 }
 
 <div class="feed-header">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="flex justify-between items-center">
         <h1 class="feed-title">Notifications</h1>
         @if (unreadCount > 0)
         {
@@ -21,8 +21,8 @@
 @if (Model.Count == 0)
 {
     <div class="empty-state">
-        <i class="bi bi-bell" style="font-size:48px;color:var(--text-secondary);"></i>
-        <p style="color:var(--text-secondary);margin-top:12px;">No notifications yet.</p>
+        <i class="bi bi-bell"></i>
+        <p>No notifications yet.</p>
     </div>
 }
 else

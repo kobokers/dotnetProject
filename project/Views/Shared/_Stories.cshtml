@@ -6,12 +6,12 @@
 
     @if (currentUser != null)
     {
-        var grouped = Model != null
-            ? Model.GroupBy(s => s.UserId).Select(g => g.First()).ToList()
-            : new List<Story>();
+        var userGroups = Model != null
+            ? Model.GroupBy(s => s.UserId).OrderByDescending(g => g.Max(s => s.CreatedAt)).ToList()
+            : new List<IGrouping<string, Story>>();
 
     <div class="story-row">
-        <a asp-controller="Story" asp-action="Create" class="story-item" style="text-decoration:none;">
+        <a asp-controller="Story" asp-action="Create" class="story-item" style="text-decoration:none;cursor:pointer;">
             <div class="story-ring story-ring-add">
                 <div class="story-inner">
                     <i class="bi bi-plus-circle"></i>
@@ -20,70 +20,99 @@
             <span class="story-name">Add Story</span>
         </a>
 
-        @foreach (var story in grouped)
+        @foreach (var group in userGroups)
         {
-            <div class="story-item" style="cursor:pointer;" data-story='@story.StoryId' onclick="openStory(this)">
+            var first = group.First();
+            var count = group.Count();
+            <div class="story-item" data-user="@first.UserId" onclick="openStory(this)">
                 <div class="story-ring">
                     <div class="story-inner">
-                        @if (!string.IsNullOrEmpty(story.User.ProfilePhoto))
+                        @if (!string.IsNullOrEmpty(first.User.ProfilePhoto))
                         {
-                            <img src="@story.User.ProfilePhoto" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />
+                            <img src="@first.User.ProfilePhoto" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />
                         }
                         else
                         {
                             <div style="width:100%;height:100%;border-radius:50%;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text-primary);font-size:18px;">
-                                @(story.User.DisplayName?[0] ?? '?')
+                                @(first.User.DisplayName?[0] ?? '?')
                             </div>
                         }
                     </div>
                 </div>
-                <span class="story-name">@story.User.DisplayName</span>
+                @if (count > 1)
+                {
+                    <span class="story-count-badge">@count</span>
+                }
+                <span class="story-name">@first.User.DisplayName</span>
             </div>
         }
     </div>
 
-    <!-- Story Viewer Modal -->
-    <div id="storyViewerModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.94);z-index:9999;justify-content:center;align-items:center;" onclick="closeStoryViewer(event)">
-        <div style="position:relative;max-width:420px;width:90%;background:var(--bg-elevated);border-radius:var(--radius-lg);overflow:hidden;" onclick="event.stopPropagation()">
-            <div style="padding:20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-color);">
-                <img id="svUserPhoto" src="" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:none;" />
-                <div id="svUserPhotoFallback" style="width:36px;height:36px;border-radius:50%;background:var(--bg-hover);display:none;align-items:center;justify-content:center;font-weight:700;color:var(--text-primary);font-size:14px;"></div>
-                <div style="flex:1;font-weight:600;font-size:15px;" id="svUserName"></div>
-                <button onclick="document.getElementById('storyViewerModal').style.display='none'" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;"><i class="bi bi-x"></i></button>
+    <!-- Story Viewer Full Screen -->
+    <div id="storyViewer" class="story-viewer-overlay" style="display:none;" onclick="closeStoryViewer(event)">
+        <button class="sv-close" onclick="closeViewer()"><i class="bi bi-x"></i></button>
+        <button class="sv-delete" id="svDeleteBtn" onclick="deleteCurrentStory()" style="display:none;" title="Delete story"><i class="bi bi-trash"></i></button>
+        <div class="sv-tap-left" onclick="prevStory()"></div>
+        <div class="sv-tap-right" onclick="nextStory()"></div>
+        <div class="story-viewer-container" onclick="event.stopPropagation()">
+            <div class="story-viewer-header">
+                <img id="svUserPhoto" src="" alt="" class="story-viewer-user" style="display:none;" />
+                <div id="svUserFallback" class="story-viewer-user-fallback" style="display:none;"></div>
+                <span class="story-viewer-name" id="svUserName"></span>
             </div>
-            <div style="padding:24px;text-align:center;">
-                <img id="svStoryImage" src="" alt="" style="max-width:100%;max-height:60vh;border-radius:var(--radius-md);" />
-                <div style="background:var(--bg-hover);border-radius:var(--radius-full);height:4px;margin-top:20px;overflow:hidden;">
-                    <div id="svProgress" style="width:0%;height:100%;background:var(--accent);border-radius:var(--radius-full);"></div>
+            <div class="story-viewer-card">
+                <img id="svStoryImg" src="" alt="" style="display:none;" />
+                <div id="svStoryText" class="story-viewer-card-text" style="display:none;"></div>
+                <div id="svConfirmBar" class="sv-confirm-bar" style="display:none;">
+                    <span>Delete this story?</span>
+                    <div class="sv-confirm-actions">
+                        <button type="button" class="sv-confirm-cancel" onclick="hideConfirmBar()">Cancel</button>
+                        <button type="button" class="sv-confirm-delete" onclick="doDeleteStory()">Delete</button>
+                    </div>
                 </div>
             </div>
-            <a id="svProfileLink" href="#" style="display:block;padding:12px;text-align:center;border-top:1px solid var(--border-color);color:var(--accent);font-weight:600;font-size:14px;text-decoration:none;">View Profile <i class="bi bi-arrow-right"></i></a>
+            <div class="story-viewer-footer">
+                <div class="sv-segments" id="svSegments"></div>
+                <a id="svProfileLink" href="#" class="story-viewer-profile-link">View Profile <i class="bi bi-arrow-right"></i></a>
+            </div>
         </div>
     </div>
 
     <script>
+        var currentUserId = '@(currentUser?.Id ?? "")';
         var storyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model ?? new List<Story>()).Select(s => new {
             id = s.StoryId,
             userId = s.UserId,
-            imageUrl = s.ImageUrl,
+            imageUrl = s.ImageUrl ?? "",
+            content = s.Content ?? "",
+            backgroundColor = s.BackgroundColor ?? "",
+            fontStyle = s.FontStyle ?? "",
             displayName = s.User.DisplayName ?? s.User.UserName,
             profilePhoto = s.User.ProfilePhoto ?? ""
         }).ToList()));
 
-        var svTimer;
-        function openStory(el) {
-            var storyId = parseInt(el.getAttribute('data-story'));
-            var data = storyData.find(function(s) { return s.id === storyId; });
-            if (!data) return;
+        var svTimer, svStartTime, svRemaining = 5000, svPaused = false;
+        var svStories = [], svIndex = 0;
+        var STORY_DURATION = 5000;
 
+        function openStory(el) {
+            var userId = el.getAttribute('data-user');
+            svStories = storyData.filter(function(s) { return s.userId === userId; });
+            if (svStories.length === 0) return;
+            svIndex = 0;
+            renderStory();
+        }
+
+        function renderStory() {
             clearTimeout(svTimer);
-            var modal = document.getElementById('storyViewerModal');
+            svPaused = false;
+            svRemaining = STORY_DURATION;
+
+            var data = svStories[svIndex];
             document.getElementById('svUserName').textContent = data.displayName;
-            document.getElementById('svStoryImage').src = data.imageUrl;
-            document.getElementById('svProfileLink').href = '/Account/Profile/' + data.userId;
 
             var img = document.getElementById('svUserPhoto');
-            var fb = document.getElementById('svUserPhotoFallback');
+            var fb = document.getElementById('svUserFallback');
             if (data.profilePhoto) {
                 img.src = data.profilePhoto;
                 img.style.display = 'block';
@@ -94,22 +123,184 @@
                 fb.textContent = data.displayName.charAt(0).toUpperCase();
             }
 
-            modal.style.display = 'flex';
-            var p = document.getElementById('svProgress');
-            p.style.transition = 'none';
-            p.style.width = '0%';
+            var storyImg = document.getElementById('svStoryImg');
+            var storyText = document.getElementById('svStoryText');
+            if (data.content) {
+                storyImg.style.display = 'none';
+                storyText.style.display = 'flex';
+                storyText.textContent = data.content;
+                storyText.style.background = data.backgroundColor || '#5865f2';
+                storyText.style.fontFamily = data.fontStyle || 'sans-serif';
+            } else {
+                storyImg.src = data.imageUrl;
+                storyImg.style.display = 'block';
+                storyText.style.display = 'none';
+            }
+
+            var delBtn = document.getElementById('svDeleteBtn');
+            delBtn.style.display = data.userId === currentUserId ? 'flex' : 'none';
+
+            buildSegments();
+            document.getElementById('storyViewer').style.display = 'flex';
+            startProgress();
+        }
+
+        function buildSegments() {
+            var container = document.getElementById('svSegments');
+            container.innerHTML = '';
+            for (var i = 0; i < svStories.length; i++) {
+                var seg = document.createElement('div');
+                seg.className = 'sv-seg';
+                if (i < svIndex) seg.classList.add('done');
+                else if (i === svIndex) seg.classList.add('active');
+
+                var fill = document.createElement('div');
+                fill.className = 'sv-seg-fill';
+                fill.id = 'svFill_' + i;
+                if (i < svIndex) fill.style.width = '100%';
+                seg.appendChild(fill);
+
+                seg.addEventListener('click', (function(idx) {
+                    return function(e) {
+                        e.stopPropagation();
+                        goToStory(idx);
+                    };
+                })(i));
+
+                container.appendChild(seg);
+            }
+        }
+
+        function goToStory(idx) {
+            if (idx === svIndex || idx < 0 || idx >= svStories.length) return;
+            svIndex = idx;
+            renderStory();
+        }
+
+        function prevStory() {
+            goToStory(svIndex - 1);
+        }
+
+        function nextStory() {
+            if (svIndex + 1 >= svStories.length) {
+                closeViewer();
+                return;
+            }
+            goToStory(svIndex + 1);
+        }
+
+        function startProgress() {
+            svStartTime = Date.now();
+            svPaused = false;
+            var fill = document.getElementById('svFill_' + svIndex);
+            if (!fill) return;
+            fill.style.transition = 'none';
+            fill.style.width = '0%';
             setTimeout(function() {
-                p.style.transition = 'width 5s linear';
-                p.style.width = '100%';
+                fill.style.transition = 'width ' + svRemaining + 'ms linear';
+                fill.style.width = '100%';
             }, 50);
-            svTimer = setTimeout(function() { modal.style.display = 'none'; }, 5100);
+            if (svRemaining > 0) {
+                svTimer = setTimeout(nextStory, svRemaining + 100);
+            }
+        }
+
+        function pauseProgress() {
+            if (svPaused) return;
+            svPaused = true;
+            clearTimeout(svTimer);
+            var fill = document.getElementById('svFill_' + svIndex);
+            if (!fill) return;
+            var cs = window.getComputedStyle(fill);
+            var parentW = fill.parentElement.offsetWidth;
+            var currentW = parseFloat(cs.width) || 0;
+            var pct = parentW > 0 ? (currentW / parentW) * 100 : 0;
+            svRemaining -= (Date.now() - svStartTime);
+            if (svRemaining < 0) svRemaining = 0;
+            fill.style.transition = 'none';
+            fill.style.width = Math.min(pct, 100) + '%';
+        }
+
+        function resumeProgress() {
+            if (!svPaused) return;
+            svPaused = false;
+            svStartTime = Date.now();
+            var fill = document.getElementById('svFill_' + svIndex);
+            if (!fill) return;
+            fill.style.transition = 'width ' + svRemaining + 'ms linear';
+            fill.style.width = '100%';
+            if (svRemaining > 0) {
+                svTimer = setTimeout(nextStory, svRemaining + 100);
+            }
+        }
+
+        function closeViewer() {
+            clearTimeout(svTimer);
+            document.getElementById('storyViewer').style.display = 'none';
         }
 
         function closeStoryViewer(e) {
             if (e.target === e.currentTarget) {
-                clearTimeout(svTimer);
-                document.getElementById('storyViewerModal').style.display = 'none';
+                closeViewer();
             }
         }
+
+        function deleteCurrentStory() {
+            pauseProgress();
+            document.getElementById('svConfirmBar').style.display = 'flex';
+        }
+
+        function hideConfirmBar() {
+            document.getElementById('svConfirmBar').style.display = 'none';
+            resumeProgress();
+        }
+
+        function doDeleteStory() {
+            var data = svStories[svIndex];
+            if (!data) return;
+
+            fetch('/Story/Delete/' + data.id, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function(r) { return r.json(); }).then(function(res) {
+                if (!res.success) { showToast(res.error); return; }
+
+                var idx = -1;
+                for (var i = 0; i < storyData.length; i++) {
+                    if (storyData[i].id === data.id) { idx = i; break; }
+                }
+                if (idx > -1) storyData.splice(idx, 1);
+
+                var remaining = [];
+                for (var i = 0; i < svStories.length; i++) {
+                    if (svStories[i].id !== data.id) remaining.push(svStories[i]);
+                }
+
+                if (remaining.length === 0) {
+                    closeViewer();
+                    var el = document.querySelector('.story-item[data-user="' + data.userId + '"]');
+                    if (el) el.remove();
+                    return;
+                }
+
+                svStories = remaining;
+                svIndex = Math.min(svIndex, svStories.length - 1);
+                renderStory();
+            }).catch(function() {
+                showToast('Failed to delete story.');
+            });
+        }
+
+        (function() {
+            var card = document.querySelector('.story-viewer-card');
+            if (card) {
+                card.addEventListener('mousedown', pauseProgress);
+                card.addEventListener('mouseup', resumeProgress);
+                card.addEventListener('mouseleave', resumeProgress);
+                card.addEventListener('touchstart', pauseProgress, { passive: true });
+                card.addEventListener('touchend', resumeProgress);
+                card.addEventListener('touchcancel', resumeProgress);
+            }
+        })();
     </script>
 }

@@ -37,10 +37,10 @@
         @if (comment.UserId == currentUserId)
         {
             <div class="comment-actions">
-                <a asp-controller="Comment" asp-action="Edit" asp-route-id="@comment.CommentId" class="btn-icon" title="Edit">
+                <button type="button" class="btn-icon edit-comment" data-comment-id="@comment.CommentId" title="Edit">
                     <i class="bi bi-pencil" style="font-size:14px;"></i>
-                </a>
-                <form method="post" asp-controller="Comment" asp-action="Delete" asp-route-id="@comment.CommentId" class="d-inline" onsubmit="return confirm('Delete this comment?');">
+                </button>
+                <form method="post" asp-controller="Comment" asp-action="Delete" asp-route-id="@comment.CommentId" class="d-inline">
                     <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>
                 </form>
             </div>

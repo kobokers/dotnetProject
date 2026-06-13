@@ -1,0 +1,127 @@
+@model Post
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppDbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var currentUserId = currentUser?.Id;
+    var isLiked = ViewBag.IsLiked ?? (currentUser != null && await AppDbContext.Likes.AnyAsync(l => l.PostId == Model.PostId && l.UserId == currentUser.Id));
+    var likeCount = Model.Likes?.Count ?? await AppDbContext.Likes.CountAsync(l => l.PostId == Model.PostId);
+    var commentCount = Model.Comments?.Count ?? await AppDbContext.Comments.CountAsync(c => c.PostId == Model.PostId);
+    var hasImage = Model.PostImages.Count > 0;
+    var images = Model.PostImages.OrderBy(pi => pi.Order).ToList();
+}
+
+<div class="post-modal-content">
+    <div class="post-modal-header">
+        @if (Model.User != null && !string.IsNullOrEmpty(Model.User.ProfilePhoto))
+        {
+            <img src="@Model.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
+        }
+        else if (Model.User != null)
+        {
+            <div class="avatar-circle avatar-sm" style="font-size:14px;">@(Model.User.DisplayName?[0] ?? '?')</div>
+        }
+        <div class="post-modal-header-author">
+            <a href="/Account/Profile/@Model.UserId">@(Model.User?.DisplayName ?? "Unknown")</a>
+            <div class="post-modal-time">@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
+        </div>
+        @if (Model.UserId == currentUserId)
+        {
+            <div class="flex gap-1" style="margin-left:12px;">
+                <button type="button" class="btn-icon" title="Edit" onclick="openEditPostModal(@Model.PostId, this)"><i class="bi bi-pencil"></i></button>
+                <form method="post" asp-controller="Post" asp-action="Delete" asp-route-id="@Model.PostId" class="d-inline">
+                    <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="color:var(--danger);"></i></button>
+                </form>
+            </div>
+        }
+        <button type="button" class="post-modal-close" onclick="closePostModal()" aria-label="Close">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="post-modal-body">
+        @if (hasImage)
+        {
+            <div class="post-modal-image-grid">
+                <div class="post-image-grid" data-count="@images.Count">
+                    @for (int i = 0; i < images.Count; i++)
+                    {
+                        var cls = i == 0 ? "grid-first" : "";
+                        <div class="grid-cell @cls" onclick="openLightbox(@Model.PostId, @i)">
+                            <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                            @if (i == 3 && images.Count > 4)
+                            {
+                                <div class="grid-overlay">+@(images.Count - 4)</div>
+                            }
+                        </div>
+                        if (i == 3) break;
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="post-modal-text-content">
+            @if (!string.IsNullOrEmpty(Model.Content))
+            {
+                <div class="post-modal-text-body">@Model.Content</div>
+            }
+
+            <div class="post-modal-text-stats">
+                <span class="post-modal-stat-btn like-btn-modal" data-post-id="@Model.PostId">
+                    <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")" style="color:var(--accent);"></i>
+                    <span class="like-count-modal">@likeCount</span> likes
+                </span>
+                <span><i class="bi bi-chat-dots"></i> @commentCount comments</span>
+            </div>
+
+            <div class="post-modal-text-divider"></div>
+
+            <div class="post-modal-comments-list" id="modal-comments-@Model.PostId">
+                @if (Model.Comments == null || !Model.Comments.Any())
+                {
+                    <div class="post-modal-comments-empty">No comments yet. Be the first to comment!</div>
+                }
+                @foreach (var comment in (Model.Comments ?? new List<Comment>()).OrderBy(c => c.CreatedAt))
+                {
+                    <div class="comment-item">
+                        @if (!string.IsNullOrEmpty(comment.User.ProfilePhoto))
+                        {
+                            <img src="@comment.User.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                        }
+                        else
+                        {
+                            <div class="avatar-circle avatar-sm" style="font-size:12px;">@(comment.User.DisplayName?[0] ?? '?')</div>
+                        }
+                        <div class="comment-content">
+                            <a href="/Account/Profile/@comment.UserId" class="comment-author">@comment.User.DisplayName</a>
+                            <div class="comment-text">@comment.Content</div>
+                            <div class="comment-time">@comment.CreatedAt.ToString("MMM dd, HH:mm")</div>
+                        </div>
+                        @if (comment.UserId == currentUserId)
+                        {
+                            <div class="comment-actions">
+                                <button type="button" class="btn-icon edit-comment" data-comment-id="@comment.CommentId" title="Edit">
+                                    <i class="bi bi-pencil" style="font-size:14px;"></i>
+                                </button>
+                                <form method="post" asp-controller="Comment" asp-action="Delete" asp-route-id="@comment.CommentId" class="d-inline">
+                                    <button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (currentUser != null)
+            {
+                <div class="post-modal-input">
+                    <form method="post" asp-controller="Comment" asp-action="Create" class="comment-input">
+                        <input type="hidden" name="postId" value="@Model.PostId" />
+                        <input name="content" class="comment-input-field" placeholder="Write a comment..." required />
+                        <button type="submit" class="comment-submit">Post</button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+</div>

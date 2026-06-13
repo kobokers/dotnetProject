@@ -78,7 +78,7 @@
                     </a>
                 </nav>
                 <!-- Avatar popup menu at bottom -->
-                <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)" style="position: relative;">
+                <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)">
                     <div class="sidebar-avatar-wrap">
                         <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
                         <span class="sidebar-online-dot"></span>
@@ -202,7 +202,16 @@
             e.stopPropagation();
             var menu = document.getElementById('avatarPopupMenu');
             if (!menu) return;
-            menu.classList.toggle('open');
+            var isOpen = menu.classList.contains('open');
+            if (isOpen) {
+                menu.classList.remove('open');
+                return;
+            }
+            var btn = document.getElementById('sidebarUserBtn');
+            var r = btn.getBoundingClientRect();
+            menu.style.left = Math.max(8, r.left + 10) + 'px';
+            menu.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+            menu.classList.add('open');
         };
 
         // Close avatar menu on outside click

@@ -83,7 +83,8 @@
         var storyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model ?? new List<Story>()).Select(s => new {
             id = s.StoryId,
             userId = s.UserId,
-            imageUrl = s.ImageUrl ?? "",
+            imageUrl = (s.StoryImages != null && s.StoryImages.Any()) ? s.StoryImages.OrderBy(si => si.Order).First().ImageUrl : s.ImageUrl ?? "",
+                imageUrls = s.StoryImages != null && s.StoryImages.Any() ? s.StoryImages.OrderBy(si => si.Order).Select(si => si.ImageUrl).ToList() : new List<string>(),
             content = s.Content ?? "",
             backgroundColor = s.BackgroundColor ?? "",
             fontStyle = s.FontStyle ?? "",
@@ -97,7 +98,26 @@
 
         function openStory(el) {
             var userId = el.getAttribute('data-user');
-            svStories = storyData.filter(function(s) { return s.userId === userId; });
+            var userStories = storyData.filter(function(s) { return s.userId === userId; });
+            svStories = [];
+            userStories.forEach(function(story) {
+                if (story.imageUrls && story.imageUrls.length > 0) {
+                    story.imageUrls.forEach(function(url) {
+                        svStories.push({
+                            id: story.id,
+                            userId: story.userId,
+                            imageUrl: url,
+                            content: story.content,
+                            backgroundColor: story.backgroundColor,
+                            fontStyle: story.fontStyle,
+                            displayName: story.displayName,
+                            profilePhoto: story.profilePhoto
+                        });
+                    });
+                } else {
+                    svStories.push(story);
+                }
+            });
             if (svStories.length === 0) return;
             svIndex = 0;
             renderStory();

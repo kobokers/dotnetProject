@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using project.Models;
 using System;
 using System.Linq;
@@ -115,7 +116,9 @@ public class StoryController : Controller
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {
-        var story = await _context.Stories.FindAsync(id);
+        var story = await _context.Stories
+            .Include(s => s.StoryImages)
+            .FirstOrDefaultAsync(s => s.StoryId == id);
         if (story == null)
             return Json(new { success = false, error = "Story not found." });
 
@@ -123,13 +126,16 @@ public class StoryController : Controller
         if (story.UserId != user!.Id)
             return Json(new { success = false, error = "Unauthorized." });
 
-        if (!string.IsNullOrEmpty(story.ImageUrl))
+        foreach (var image in story.StoryImages)
         {
-            var filePath = Path.Combine(
-                Directory.GetCurrentDirectory(), "wwwroot",
-                story.ImageUrl.TrimStart('/'));
-            if (System.IO.File.Exists(filePath))
-                System.IO.File.Delete(filePath);
+            if (!string.IsNullOrEmpty(image.ImageUrl))
+            {
+                var filePath = Path.Combine(
+                    Directory.GetCurrentDirectory(), "wwwroot",
+                    image.ImageUrl.TrimStart('/'));
+                if (System.IO.File.Exists(filePath))
+                    System.IO.File.Delete(filePath);
+            }
         }
 
         _context.Stories.Remove(story);

@@ -17,11 +17,21 @@
                 <span asp-validation-for="Content" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label class="form-label">Image <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+                <label class="form-label">Images <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
                 <div class="file-upload-wrapper">
                     <label class="file-upload-btn">
                         <i class="bi bi-image"></i> Choose Image
-                        <input name="image" type="file" accept="image/*" hidden onchange="this.closest('.file-upload-wrapper').querySelector('.file-upload-name').textContent = this.files[0]?.name || 'No file chosen'" />
+                        <input name="images" type="file" accept="image/*" multiple hidden onchange="
+    const files = this.files;
+    const nameSpan = this.closest('.file-upload-wrapper').querySelector('.file-upload-name');
+    if (!files || files.length === 0) {
+        nameSpan.textContent = 'No files chosen';
+    } else if (files.length === 1) {
+        nameSpan.textContent = files[0].name;
+    } else {
+        nameSpan.textContent = `${files.length} files selected`;
+    }
+" />
                     </label>
                     <span class="file-upload-name">No file chosen</span>
                 </div>

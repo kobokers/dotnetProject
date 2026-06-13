@@ -67,23 +67,29 @@
                     <a asp-controller="Message" asp-action="Index" class="sidebar-nav-item active-check" data-active="Message,Index">
                         <i class="bi bi-chat"></i><span>Messages</span>
                     </a>
-                    <a asp-controller="Account" asp-action="Profile" class="sidebar-nav-item active-check" data-active="Account,Profile">
-                        <i class="bi bi-person-circle"></i><span>Profile</span>
-                    </a>
-                    <a asp-controller="Settings" asp-action="Index" class="sidebar-nav-item active-check" data-active="Settings,Index">
-                        <i class="bi bi-gear"></i><span>Settings</span>
+                    <a asp-controller="Bookmark" asp-action="Index" class="sidebar-nav-item active-check" data-active="Bookmark,Index">
+                        <i class="bi bi-bookmark"></i><span>Bookmarks</span>
                     </a>
                 </nav>
-                <div class="sidebar-user">
-                    <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
-                    <div class="sidebar-user-info">
-                        <span class="sidebar-username">@currentUser?.UserName</span>
-                        <span class="friend-code" id="friendCode" onclick="copyFriendCode()" title="Click to copy your Friend Code">@currentUser?.FriendCode</span>
+                <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)" style="position:relative;">
+                    <div class="sidebar-avatar-wrap">
+                        <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
+                        <span class="sidebar-online-dot"></span>
                     </div>
-                    <div class="flex gap-2">
-                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                            <button type="submit" title="Logout" class="btn-icon">
-                                <i class="bi bi-box-arrow-right"></i>
+                    <div class="sidebar-user-info">
+                        <span class="sidebar-username">@(currentUser?.UserName?.Length > 12 ? currentUser.UserName.Substring(0, 12) + "..." : currentUser?.UserName)</span>
+                        <span class="friend-code" id="friendCode" onclick="event.stopPropagation();copyFriendCode()" title="Click to copy your Friend Code">@currentUser?.FriendCode</span>
+                    </div>
+                    <div class="avatar-popup-menu" id="avatarPopupMenu">
+                        <a asp-controller="Account" asp-action="Profile" class="avatar-menu-item">
+                            <i class="bi bi-person-circle"></i> Profile
+                        </a>
+                        <a asp-controller="Settings" asp-action="Index" class="avatar-menu-item">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
+                        <form asp-controller="Account" asp-action="Logout" method="post">
+                            <button type="submit" class="avatar-menu-item avatar-menu-item--danger">
+                                <i class="bi bi-box-arrow-right"></i> Logout
                             </button>
                         </form>
                     </div>
@@ -97,11 +103,14 @@
             </div>
         </main>
 
-        @if (isAuthenticated)
+        @if (isAuthenticated && ViewData["HideRightPanel"] != (object)true)
         {
             <aside class="right-panel">
                 <partial name="_RightPanel" />
             </aside>
+        }
+        @if (isAuthenticated)
+        {
             <nav class="bottom-nav">
                 <a asp-controller="Post" asp-action="Index" class="active-check" data-active="Post,Index">
                     <i class="bi bi-house-fill"></i><span>Home</span>
@@ -115,11 +124,8 @@
                 <a asp-controller="Message" asp-action="Index" class="active-check" data-active="Message,Index">
                     <i class="bi bi-chat"></i><span>Messages</span>
                 </a>
-                <a asp-controller="Account" asp-action="Profile" class="active-check" data-active="Account,Profile">
-                    <i class="bi bi-person-circle"></i><span>Profile</span>
-                </a>
-                <a asp-controller="Settings" asp-action="Index" class="active-check" data-active="Settings,Index">
-                    <i class="bi bi-gear"></i><span>Settings</span>
+                <a asp-controller="Bookmark" asp-action="Index" class="active-check" data-active="Bookmark,Index">
+                    <i class="bi bi-bookmark"></i><span>Saved</span>
                 </a>
             </nav>
             <a asp-controller="Post" asp-action="Create" class="create-fab">
@@ -148,6 +154,29 @@
     </div>
 
     <script>
+        window.toggleAvatarMenu = function(e) {
+            e.stopPropagation();
+            var menu = document.getElementById('avatarPopupMenu');
+            if (!menu) return;
+            var isOpen = menu.classList.contains('open');
+            if (isOpen) {
+                menu.classList.remove('open');
+                return;
+            }
+            var btn = document.getElementById('sidebarUserBtn');
+            var r = btn.getBoundingClientRect();
+            menu.style.left = Math.max(8, r.left + 10) + 'px';
+            menu.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+            menu.classList.add('open');
+        };
+
+        document.addEventListener('click', function(e) {
+            var menu = document.getElementById('avatarPopupMenu');
+            if (menu && !e.target.closest('#sidebarUserBtn')) {
+                menu.classList.remove('open');
+            }
+        });
+
         var confirmCallback = null;
 
         window.showConfirm = function(message, callback) {

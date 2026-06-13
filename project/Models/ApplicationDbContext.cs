@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PostImage> PostImages => Set<PostImage>();
+    public DbSet<StoryImage> StoryImages => Set<StoryImage>();
     public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -85,6 +86,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(s => s.User)
                 .WithMany(u => u.Stories)
                 .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One‑to‑many relationship for story media (images/videos)
+            entity.HasMany(s => s.StoryImages)
+                .WithOne(i => i.Story)
+                .HasForeignKey(i => i.StoryId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

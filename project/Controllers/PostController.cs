@@ -34,6 +34,7 @@ public class PostController : Controller
         ViewBag.Stories = await _context.Stories
             .Where(s => s.CreatedAt >= cutoff)
             .Include(s => s.User)
+            .Include(s => s.StoryImages) // Load media for story viewer
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 

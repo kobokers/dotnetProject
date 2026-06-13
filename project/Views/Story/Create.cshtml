@@ -28,14 +28,12 @@
             <h2 class="story-create-heading">Create a story</h2>
             <div class="story-type-grid">
                 <button type="button" class="story-type-card story-type-card--photo" onclick="goToStep('photo')">
-                    <div class="story-type-icon">📷</div>
-                    <div class="story-type-title">Photo Story</div>
-                    <div class="story-type-desc">Share a moment with a photo</div>
+                    <div class="story-type-icon"><i class="bi bi-camera-fill" style="font-size:24px;"></i></div>
+                    <div class="story-type-title">Create a photo or video story</div>
                 </button>
                 <button type="button" class="story-type-card story-type-card--text" onclick="goToStep('text')">
-                    <div class="story-type-icon" style="font-weight:800;font-size:28px;">Aa</div>
-                    <div class="story-type-title">Text Story</div>
-                    <div class="story-type-desc">Express yourself with text</div>
+                    <div class="story-type-icon"><i class="bi bi-type" style="font-size:24px;"></i></div>
+                    <div class="story-type-title">Create a Text Story</div>
                 </button>
             </div>
         </div>
@@ -70,62 +68,76 @@
                 <button type="button" class="btn-icon" onclick="goToStep('picker')" title="Back"><i class="bi bi-arrow-left"></i></button>
                 <span class="story-create-topbar-title">Text Story</span>
             </div>
-            <form method="post" asp-controller="Story" asp-action="Create" class="story-create-form">
+            <form method="post" asp-controller="Story" asp-action="Create" class="story-create-form text-story-form">
                 <input type="hidden" name="image" value="" />
                 <input type="hidden" name="backgroundColor" id="scBgColor" value="#5865f2" />
                 <input type="hidden" name="fontStyle" id="scFontStyle" value="sans-serif" />
-                <div class="text-story-layout">
-                    <div class="text-story-controls">
-                        <div class="text-story-label">Background</div>
-                        <div class="color-swatch-grid">
-                            <button type="button" class="color-swatch active" data-color="#5865f2" style="background:#5865f2;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#ed4245" style="background:#ed4245;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#3ba55d" style="background:#3ba55d;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#faa81a" style="background:#faa81a;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#eb459e" style="background:#eb459e;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#1abc9c" style="background:#1abc9c;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#9b59b6" style="background:#9b59b6;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#34495e" style="background:#34495e;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#e67e22" style="background:#e67e22;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#2c3e50" style="background:#2c3e50;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#8e44ad" style="background:#8e44ad;" onclick="pickColor(this)"></button>
-                            <button type="button" class="color-swatch" data-color="#16a085" style="background:#16a085;" onclick="pickColor(this)"></button>
-                        </div>
-                        <div class="text-story-label" style="margin-top:16px;">Font</div>
-                        <select class="form-input" id="scFontSelect" onchange="updatePreview()">
-                            <option value="sans-serif">Sans-serif</option>
-                            <option value="serif">Serif</option>
-                            <option value="monospace">Monospace</option>
-                            <option value="Georgia, serif">Georgia</option>
-                            <option value="'Courier New', monospace">Courier New</option>
-                        </select>
-                        <div class="text-story-label" style="margin-top:16px;">Text</div>
-                        <textarea class="form-input" rows="4" placeholder="What's on your mind?" id="scTextInput" name="content" oninput="updatePreview()" maxlength="200" style="resize:none;"></textarea>
-                        <div style="font-size:11px;color:var(--text-muted);text-align:right;" id="scCharCount">0/200</div>
-                    </div>
-                    <div class="text-story-preview-wrap">
-                        <div class="text-story-preview-card" id="scPreviewCard" style="background:#5865f2;">
-                            <div class="text-story-preview-user">
-                                @if (currentUser != null)
-                                {
-                                    if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
-                                    {
-                                        <img src="@currentUser.ProfilePhoto" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
-                                    }
-                                    else
-                                    {
-                                        <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">@(currentUser.DisplayName?[0] ?? '?')</div>
-                                    }
-                                    <span style="font-size:12px;font-weight:600;opacity:0.9;">@currentUser.DisplayName</span>
-                                }
+                <div class="text-story-editor">
+                    <div class="text-story-sidebar">
+                        <div class="text-story-section">
+                            <div class="text-story-section-title">
+                                <i class="bi bi-palette"></i> Background
                             </div>
-                            <div class="text-story-preview-text" id="scPreviewText" style="font-family:sans-serif;">Your story</div>
+                            <div class="color-swatch-grid color-swatch-grid--large">
+                                <button type="button" class="color-swatch active" data-color="#5865f2" style="background:#5865f2;" onclick="pickColor(this)" title="Blue"></button>
+                                <button type="button" class="color-swatch" data-color="#ed4245" style="background:#ed4245;" onclick="pickColor(this)" title="Red"></button>
+                                <button type="button" class="color-swatch" data-color="#3ba55d" style="background:#3ba55d;" onclick="pickColor(this)" title="Green"></button>
+                                <button type="button" class="color-swatch" data-color="#faa81a" style="background:#faa81a;" onclick="pickColor(this)" title="Yellow"></button>
+                                <button type="button" class="color-swatch" data-color="#eb459e" style="background:#eb459e;" onclick="pickColor(this)" title="Pink"></button>
+                                <button type="button" class="color-swatch" data-color="#1abc9c" style="background:#1abc9c;" onclick="pickColor(this)" title="Teal"></button>
+                                <button type="button" class="color-swatch" data-color="#9b59b6" style="background:#9b59b6;" onclick="pickColor(this)" title="Purple"></button>
+                                <button type="button" class="color-swatch" data-color="#34495e" style="background:#34495e;" onclick="pickColor(this)" title="Dark"></button>
+                                <button type="button" class="color-swatch" data-color="#e67e22" style="background:#e67e22;" onclick="pickColor(this)" title="Orange"></button>
+                                <button type="button" class="color-swatch" data-color="#2c3e50" style="background:#2c3e50;" onclick="pickColor(this)" title="Navy"></button>
+                                <button type="button" class="color-swatch" data-color="#8e44ad" style="background:#8e44ad;" onclick="pickColor(this)" title="Violet"></button>
+                                <button type="button" class="color-swatch" data-color="#16a085" style="background:#16a085;" onclick="pickColor(this)" title="Sea Green"></button>
+                            </div>
+                        </div>
+                        <div class="text-story-section">
+                            <div class="text-story-section-title">
+                                <i class="bi bi-type"></i> Font
+                            </div>
+                            <select class="form-input" id="scFontSelect" onchange="updatePreview()">
+                                <option value="sans-serif">Sans-serif</option>
+                                <option value="serif">Serif</option>
+                                <option value="monospace">Monospace</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="'Courier New', monospace">Courier New</option>
+                            </select>
+                        </div>
+                        <div class="text-story-section">
+                            <div class="text-story-section-title">
+                                <i class="bi bi-chat-left-text"></i> Text
+                            </div>
+                            <textarea class="form-input text-story-textarea" rows="5" placeholder="Type your story..." id="scTextInput" name="content" oninput="updatePreview()" maxlength="200" style="resize:none;"></textarea>
+                            <div class="text-story-char-count"><span id="scCharCount">0</span>/200</div>
+                        </div>
+                        <div class="text-story-actions">
+                            <a asp-controller="Post" asp-action="Index" class="btn btn-outline">Discard</a>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Share Story</button>
                         </div>
                     </div>
-                </div>
-                <div class="story-create-actions" style="margin-top:24px;">
-                    <a asp-controller="Post" asp-action="Index" class="btn btn-outline">Discard</a>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Share Story</button>
+                    <div class="text-story-preview-area">
+                        <div class="text-story-preview-container">
+                            <div class="text-story-preview-card" id="scPreviewCard" style="background:#5865f2;">
+                                <div class="text-story-preview-user">
+                                    @if (currentUser != null)
+                                    {
+                                        if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+                                        {
+                                            <img src="@currentUser.ProfilePhoto" alt="" class="story-preview-avatar" />
+                                        }
+                                        else
+                                        {
+                                            <div class="story-preview-avatar-placeholder">@(currentUser.DisplayName?[0] ?? '?')</div>
+                                        }
+                                        <span class="story-preview-username">@currentUser.DisplayName</span>
+                                    }
+                                </div>
+                                <div class="text-story-preview-text" id="scPreviewText" style="font-family:sans-serif;">Your story</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -158,7 +170,7 @@
             textEl.style.fontFamily = fontSelect.value;
             textEl.textContent = input.value.trim() || 'Your story';
             card.style.background = bgColor;
-            document.getElementById('scCharCount').textContent = input.value.length + '/200';
+            document.getElementById('scCharCount').textContent = input.value.length;
         }
 
         function previewStoryPhoto(input) {

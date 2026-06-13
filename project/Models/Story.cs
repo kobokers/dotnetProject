@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace project.Models;
 
@@ -11,8 +12,10 @@ public class Story
 
     public string? ImageUrl { get; set; }
 
+    [Column("TextContent")]
     public string? Content { get; set; }
 
+    [Column("Background")]
     public string? BackgroundColor { get; set; }
 
     public string? FontStyle { get; set; }

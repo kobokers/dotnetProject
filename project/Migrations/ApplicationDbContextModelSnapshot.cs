@@ -486,10 +486,12 @@ namespace project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoryId"));
 
                     b.Property<string>("BackgroundColor")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Background");
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("TextContent");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");

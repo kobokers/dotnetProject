@@ -12,6 +12,9 @@ public class Story
 
     public string? ImageUrl { get; set; }
 
+    // Collection of media items (images or MP4 videos) for this story. Legacy ImageUrl remains as a fallback.
+    public ICollection<StoryImage> StoryImages { get; set; } = new List<StoryImage>();
+
     [Column("TextContent")]
     public string? Content { get; set; }
 

@@ -1,5 +1,6 @@
 @{
     ViewData["Title"] = "Add Story";
+    ViewData["HideRightPanel"] = true;
 }
 @inject UserManager<ApplicationUser> UserManager
 @{
@@ -51,7 +52,7 @@
                     <label class="story-photo-btn">
                         <i class="bi bi-camera" style="font-size:28px;"></i>
                         <span>Choose a photo</span>
-                        <input name="image" type="file" accept="image/*" hidden required onchange="previewStoryPhoto(this)" />
+                        <input name="images" type="file" accept="image/*,video/mp4" multiple hidden required onchange="previewStoryMedia(this)" />
                     </label>
                     <p class="story-hint">Your story will expire in 24 hours</p>
                 </div>
@@ -69,7 +70,7 @@
                 <span class="story-create-topbar-title">Text Story</span>
             </div>
             <form method="post" asp-controller="Story" asp-action="Create" class="story-create-form text-story-form">
-                <input type="hidden" name="image" value="" />
+
                 <input type="hidden" name="backgroundColor" id="scBgColor" value="#5865f2" />
                 <input type="hidden" name="fontStyle" id="scFontStyle" value="sans-serif" />
                 <div class="text-story-editor">
@@ -173,14 +174,35 @@
             document.getElementById('scCharCount').textContent = input.value.length;
         }
 
-        function previewStoryPhoto(input) {
-            var preview = document.getElementById('scPhotoPreview');
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.innerHTML = '<img src="' + e.target.result + '" alt="" style="max-width:100%;max-height:300px;border-radius:var(--radius-md);object-fit:cover;" />';
-                };
-                reader.readAsDataURL(input.files[0]);
+        function previewStoryMedia(input) {
+            const preview = document.getElementById('scPhotoPreview');
+            preview.innerHTML = '';
+            if (!input.files || input.files.length === 0) return;
+            const maxCount = 8;
+            if (input.files.length > maxCount) {
+                toast('You can select up to 8 files.', 'danger');
+                input.value = '';
+                return;
+            }
+            for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+                const url = URL.createObjectURL(file);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'preview-thumb';
+                if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.muted = true;
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.playsInline = true;
+                    wrapper.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    wrapper.appendChild(img);
+                }
+                preview.appendChild(wrapper);
             }
         }
     </script>

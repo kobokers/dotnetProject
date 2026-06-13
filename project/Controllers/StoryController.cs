@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using project.Models;
 using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace project.Controllers;
 
@@ -25,15 +27,38 @@ public class StoryController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(IFormFile? image, string? content, string? backgroundColor, string? fontStyle)
+    public async Task<IActionResult> Create(IFormFile? image, IFormFile[]? images, string? content, string? backgroundColor, string? fontStyle)
     {
         var user = await _userManager.GetUserAsync(User);
 
-        if ((image == null || image.Length == 0) && string.IsNullOrWhiteSpace(content))
+        // Validate that at least one image/video or text is provided
+        var hasImage = (image != null && image.Length > 0) || (images != null && images.Any(i => i?.Length > 0));
+        if (!hasImage && string.IsNullOrWhiteSpace(content))
         {
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = false, error = "Please select an image or enter text." });
-            ModelState.AddModelError("", "Please select an image or enter text.");
+                return Json(new { success = false, error = "Please select an image/video or enter text." });
+            ModelState.AddModelError("", "Please select an image/video or enter text.");
+            return View();
+        }
+
+        // Enforce max 8 files
+        if (images != null && images.Length > 8)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "Maximum 8 images allowed." });
+            ModelState.AddModelError("", "Maximum 8 images allowed.");
+            return View();
+        }
+
+        // Enforce per‑file size limit (10 MiB)
+        var allFiles = new List<IFormFile>();
+        if (image != null && image.Length > 0) allFiles.Add(image);
+        if (images != null) allFiles.AddRange(images.Where(i => i?.Length > 0));
+        if (allFiles.Any(f => f.Length > 10_485_760))
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = false, error = "File exceeds 10 MiB limit." });
+            ModelState.AddModelError("", "File exceeds 10 MiB limit.");
             return View();
         }
 
@@ -43,17 +68,20 @@ public class StoryController : Controller
             CreatedAt = DateTime.UtcNow
         };
 
-        if (image != null && image.Length > 0)
+        if (allFiles.Any())
         {
-            var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(image.FileName)}";
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "stories", fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            foreach (var file in allFiles)
             {
-                await image.CopyToAsync(stream);
+                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "stories", fileName);
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await file.CopyToAsync(stream);
+                story.StoryImages.Add(new StoryImage
+                {
+                    ImageUrl = $"/uploads/stories/{fileName}",
+                    Order = story.StoryImages.Count
+                });
             }
-
-            story.ImageUrl = $"/uploads/stories/{fileName}";
         }
         else
         {
@@ -71,7 +99,7 @@ public class StoryController : Controller
             {
                 success = true,
                 storyId = story.StoryId,
-                imageUrl = story.ImageUrl ?? "",
+                imageUrl = story.StoryImages.FirstOrDefault()?.ImageUrl ?? story.ImageUrl ?? "",
                 content = story.Content ?? "",
                 backgroundColor = story.BackgroundColor ?? "",
                 fontStyle = story.FontStyle ?? "",

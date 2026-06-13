@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @inject UserManager<ApplicationUser> UserManager
@@ -118,7 +118,7 @@
                 <a asp-controller="Account" asp-action="Search" class="active-check" data-active="Account,Search">
                     <i class="bi bi-search"></i><span>Search</span>
                 </a>
-                <a asp-controller="Post" asp-action="Create">
+                <a href="javascript:void(0)" onclick="openCreatePostModal()">
                     <i class="bi bi-plus-square"></i><span>Create</span>
                 </a>
                 <a asp-controller="Message" asp-action="Index" class="active-check" data-active="Message,Index">
@@ -128,11 +128,53 @@
                     <i class="bi bi-bookmark"></i><span>Saved</span>
                 </a>
             </nav>
-            <a asp-controller="Post" asp-action="Create" class="create-fab">
+            <a href="javascript:void(0)" onclick="openCreatePostModal()" class="create-fab">
                 <i class="bi bi-plus-lg"></i>
             </a>
         }
     </div>
+
+    <!-- Create Post Modal Overlay (Global) -->
+    @if (isAuthenticated)
+    {
+        <div class="post-modal-overlay" id="createPostOverlay">
+            <div class="create-post-modal-container">
+                <div class="create-post-modal-header">
+                    <h3>Create Post</h3>
+                    <button type="button" class="post-modal-close" onclick="closeCreatePostModal()" aria-label="Close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="create-post-modal-body">
+                    <form id="createPostForm" method="post" asp-controller="Post" asp-action="Create" enctype="multipart/form-data">
+                        <div class="create-post-user">
+                            @if (currentUser != null)
+                            {
+                                if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+                                {
+                                    <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                                }
+                                else
+                                {
+                                    <div class="avatar-circle avatar-sm" style="font-size:14px;">@(currentUser.DisplayName?[0] ?? '?')</div>
+                                }
+                                <span>@currentUser.DisplayName</span>
+                            }
+                        </div>
+                        <textarea name="Content" class="create-post-textarea" placeholder="What's on your mind?" rows="4"></textarea>
+                        <div class="create-post-preview" id="createPostPreview"></div>
+                        <div class="create-post-footer">
+                            <label class="create-post-photo-btn" title="Add photos/videos">
+                                <i class="bi bi-image"></i> Add Photos/Videos
+                                <input name="images" type="file" accept="image/*,video/*" multiple hidden onchange="previewCreateImages(this)" />
+                            </label>
+                            <button type="submit" class="btn btn-primary">Post</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -208,6 +250,127 @@
                 closeConfirm();
             }
         });
+
+        // ===== Global Create Post Modal =====
+        window.openCreatePostModal = function() {
+            var overlay = document.getElementById('createPostOverlay');
+            if (!overlay) return;
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            var textarea = overlay.querySelector('textarea');
+            if (textarea) setTimeout(function() { textarea.focus(); }, 200);
+        };
+
+        window.closeCreatePostModal = function() {
+            var overlay = document.getElementById('createPostOverlay');
+            if (!overlay) return;
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        // Close create post modal on backdrop click
+        document.addEventListener('click', function(e) {
+            var overlay = document.getElementById('createPostOverlay');
+            if (!overlay || !overlay.classList.contains('active')) return;
+            if (e.target === overlay) closeCreatePostModal();
+        });
+
+        // Create post form submission (AJAX)
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (!form.id || form.id !== 'createPostForm') return;
+            e.preventDefault();
+
+            var submitBtn = form.querySelector('button[type="submit"]');
+            var contentInput = form.querySelector('textarea[name="Content"]');
+            var fileInput = form.querySelector('input[name="images"]');
+            var content = contentInput ? contentInput.value.trim() : '';
+            var hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+            if (!content && !hasFile) {
+                showToast('Please enter some text or choose an image.');
+                return;
+            }
+
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form)
+            }).then(function(resp) {
+                return resp.json();
+            }).then(function(data) {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Post'; }
+                if (!data.success) {
+                    if (data.error) showToast(data.error);
+                    return;
+                }
+
+                var feedContent = document.getElementById('feedContent');
+                if (feedContent) {
+                    var createBox = feedContent.querySelector('.create-post-box');
+                    if (createBox) {
+                        createBox.insertAdjacentHTML('afterend', data.html);
+                    } else {
+                        feedContent.insertAdjacentHTML('afterbegin', data.html);
+                    }
+                    var emptyEl = document.getElementById('feedEmpty');
+                    if (emptyEl) emptyEl.style.display = 'none';
+                } else {
+                    window.location.href = '/Post/Index';
+                    return;
+                }
+
+                closeCreatePostModal();
+                form.reset();
+                var preview = document.getElementById('createPostPreview');
+                if (preview) preview.innerHTML = '';
+            }).catch(function(err) {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Post'; }
+                var msg = 'Failed to create post.';
+                if (err && err.message) msg = err.message;
+                if (err && err.status) msg = 'Server error (' + err.status + ').';
+                showToast(msg);
+            });
+        });
+
+        // Multi-image/video preview for create post
+        window.previewCreateImages = function(input) {
+            var preview = document.getElementById('createPostPreview');
+            if (!preview) return;
+            preview.innerHTML = '';
+            if (!input.files || input.files.length === 0) return;
+            for (var i = 0; i < input.files.length; i++) {
+                (function(file) {
+                    var url = URL.createObjectURL(file);
+                    var wrap = document.createElement('div');
+                    wrap.className = 'create-preview-thumb';
+                    if (file.type.startsWith('video/')) {
+                        wrap.innerHTML = '<video src="' + url + '" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>' +
+                            '<button type="button" class="create-preview-remove" onclick="removeCreateImage(this, \'' + file.name + '\')"><i class="bi bi-x"></i></button>';
+                    } else {
+                        wrap.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;" />' +
+                            '<button type="button" class="create-preview-remove" onclick="removeCreateImage(this, \'' + file.name + '\')"><i class="bi bi-x"></i></button>';
+                    }
+                    preview.appendChild(wrap);
+                })(input.files[i]);
+            }
+        };
+
+        window.removeCreateImage = function(btn, fileName) {
+            var wrap = btn.closest('.create-preview-thumb');
+            if (wrap) wrap.remove();
+            var input = document.querySelector('#createPostForm input[name="images"]');
+            if (!input || !input.files) return;
+            var dt = new DataTransfer();
+            for (var i = 0; i < input.files.length; i++) {
+                if (input.files[i].name !== fileName) {
+                    dt.items.add(input.files[i]);
+                }
+            }
+            input.files = dt.files;
+        };
     </script>
 </body>
 </html>

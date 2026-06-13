@@ -1700,6 +1700,30 @@ input::placeholder, textarea::placeholder, select::placeholder {
   position: relative;
 }
 
+@media (max-width: 500px) {
+  .create-post-modal-container {
+    max-width: 100%;
+    height: 100vh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .create-post-modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  #createPostForm {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .create-post-textarea {
+    flex: 1;
+    min-height: 150px;
+  }
+}
+
 .post-modal-overlay.active .create-post-modal-container {
   transform: scale(1);
 }

@@ -62,6 +62,7 @@
             </div>
             <div class="story-viewer-card">
                 <img id="svStoryImg" src="" alt="" style="display:none;" />
+                <video id="svStoryVideo" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:12px;" playsinline></video>
                 <div id="svStoryText" class="story-viewer-card-text" style="display:none;"></div>
                 <div id="svConfirmBar" class="sv-confirm-bar" style="display:none;">
                     <span>Delete this story?</span>
@@ -144,17 +145,30 @@
             }
 
             var storyImg = document.getElementById('svStoryImg');
+            var storyVideo = document.getElementById('svStoryVideo');
             var storyText = document.getElementById('svStoryText');
+            var isVideo = /\.(mp4|webm|ogg)$/i.test(data.imageUrl);
+
+            // Reset all
+            storyImg.style.display = 'none';
+            storyVideo.style.display = 'none';
+            storyVideo.pause();
+            storyVideo.removeAttribute('src');
+            storyText.style.display = 'none';
+
             if (data.content) {
-                storyImg.style.display = 'none';
                 storyText.style.display = 'flex';
                 storyText.textContent = data.content;
                 storyText.style.background = data.backgroundColor || '#5865f2';
                 storyText.style.fontFamily = data.fontStyle || 'sans-serif';
+            } else if (isVideo) {
+                storyVideo.src = data.imageUrl;
+                storyVideo.style.display = 'block';
+                storyVideo.muted = true;
+                storyVideo.play().catch(function(){});
             } else {
                 storyImg.src = data.imageUrl;
                 storyImg.style.display = 'block';
-                storyText.style.display = 'none';
             }
 
             var delBtn = document.getElementById('svDeleteBtn');
@@ -256,6 +270,8 @@
 
         function closeViewer() {
             clearTimeout(svTimer);
+            var vid = document.getElementById('svStoryVideo');
+            if (vid) { vid.pause(); vid.removeAttribute('src'); }
             document.getElementById('storyViewer').style.display = 'none';
         }
 

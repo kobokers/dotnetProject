@@ -3589,7 +3589,7 @@ a:hover {
 
 .text-story-editor {
   display: grid;
-  grid-template-columns: 1fr 450px;
+  grid-template-columns: 400px 1fr;
   gap: 40px;
   align-items: start;
   padding: 20px 0;
@@ -3721,15 +3721,15 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  padding: 0;
-  min-height: auto;
+  padding: 40px;
+  min-height: 600px;
 }
 
 .text-story-preview-container {
   width: 100%;
-  max-width: 340px;
+  max-width: 380px;
   aspect-ratio: 9/16;
   display: flex;
   align-items: center;
@@ -3806,7 +3806,8 @@ a:hover {
   
   .text-story-preview-area {
     order: 1;
-    padding: 24px 0;
+    padding: 24px;
+    min-height: 400px;
   }
   
   .text-story-preview-container {
@@ -3837,7 +3838,8 @@ a:hover {
   }
   
   .text-story-preview-area {
-    padding: 16px 0;
+    padding: 16px;
+    min-height: 300px;
   }
   
   .text-story-preview-container {

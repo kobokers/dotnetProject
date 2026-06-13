@@ -1951,7 +1951,8 @@ input::placeholder, textarea::placeholder, select::placeholder {
   background: #000;
 }
 
-.lightbox-main-img {
+.lightbox-main-img,
+.lightbox-main-video {
   max-width: 100%;
   max-height: 100vh;
   object-fit: contain;
@@ -2021,30 +2022,36 @@ input::placeholder, textarea::placeholder, select::placeholder {
   border-radius: 20px;
 }
 
-/* Lightbox image animations */
-.lightbox-main-img {
+/* Lightbox image and video animations */
+.lightbox-main-img,
+.lightbox-main-video {
   transform: scale(0.9);
   opacity: 0;
   transition: none;
 }
 
-.lightbox-overlay.active .lightbox-main-img {
+.lightbox-overlay.active .lightbox-main-img,
+.lightbox-overlay.active .lightbox-main-video {
   animation: lightboxScaleIn 0.25s ease-out forwards;
 }
 
-.lightbox-main-img.slide-out-left {
+.lightbox-main-img.slide-out-left,
+.lightbox-main-video.slide-out-left {
   animation: slideOutLeft 0.2s ease forwards;
 }
 
-.lightbox-main-img.slide-out-right {
+.lightbox-main-img.slide-out-right,
+.lightbox-main-video.slide-out-right {
   animation: slideOutRight 0.2s ease forwards;
 }
 
-.lightbox-main-img.slide-in-right {
+.lightbox-main-img.slide-in-right,
+.lightbox-main-video.slide-in-right {
   animation: slideInRight 0.2s ease forwards;
 }
 
-.lightbox-main-img.slide-in-left {
+.lightbox-main-img.slide-in-left,
+.lightbox-main-video.slide-in-left {
   animation: slideInLeft 0.2s ease forwards;
 }
 

@@ -106,8 +106,25 @@
                 @for (int i = 0; i < images.Count; i++)
                 {
                     var cls = i == 0 ? "grid-first" : "";
+                    var isVideo = images[i].ImageUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".quicktime", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".3gp", StringComparison.OrdinalIgnoreCase) ||
+                                  images[i].ImageUrl.EndsWith(".wmv", StringComparison.OrdinalIgnoreCase);
                     <div class="grid-cell @cls" onclick="openLightbox(@post.PostId, @i)">
-                        <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                        @if (isVideo)
+                        {
+                            <video src="@images[i].ImageUrl" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>
+                            <div class="video-grid-overlay" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; pointer-events: none;"><i class="bi bi-play-fill" style="font-size: 16px;"></i></div>
+                        }
+                        else
+                        {
+                            <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                        }
                         @if (i == 3 && images.Count > 4)
                         {
                             <div class="grid-overlay">+@(images.Count - 4)</div>
@@ -590,7 +607,7 @@
         });
     });
 
-    // Multi-image preview for create post
+    // Multi-image/video preview for create post
     window.previewCreateImages = function(input) {
         var preview = document.getElementById('createPostPreview');
         if (!preview) return;
@@ -598,15 +615,17 @@
         if (!input.files || input.files.length === 0) return;
         for (var i = 0; i < input.files.length; i++) {
             (function(file) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    var wrap = document.createElement('div');
-                    wrap.className = 'create-preview-thumb';
-                    wrap.innerHTML = '<img src="' + e.target.result + '" alt="" />' +
+                var url = URL.createObjectURL(file);
+                var wrap = document.createElement('div');
+                wrap.className = 'create-preview-thumb';
+                if (file.type.startsWith('video/')) {
+                    wrap.innerHTML = '<video src="' + url + '" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>' +
                         '<button type="button" class="create-preview-remove" onclick="removeCreateImage(this, \'' + file.name + '\')"><i class="bi bi-x"></i></button>';
-                    preview.appendChild(wrap);
-                };
-                reader.readAsDataURL(file);
+                } else {
+                    wrap.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;" />' +
+                        '<button type="button" class="create-preview-remove" onclick="removeCreateImage(this, \'' + file.name + '\')"><i class="bi bi-x"></i></button>';
+                }
+                preview.appendChild(wrap);
             })(input.files[i]);
         }
     };
@@ -778,7 +797,8 @@
             '<div class="lightbox-left" id="lightboxLeft">' +
                 '<button class="lightbox-close-btn" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>' +
                 '<button class="lightbox-arrow lightbox-arrow-prev" onclick="lightboxPrev(event)"><i class="bi bi-chevron-left"></i></button>' +
-                '<img class="lightbox-main-img" id="lightboxMainImg" src="" alt="" />' +
+                '<img class="lightbox-main-img" id="lightboxMainImg" src="" alt="" style="display:none;" />' +
+                '<video class="lightbox-main-video" id="lightboxMainVideo" src="" controls autoplay style="display:none;"></video>' +
                 '<button class="lightbox-arrow lightbox-arrow-next" onclick="lightboxNext(event)"><i class="bi bi-chevron-right"></i></button>' +
                 '<div class="lightbox-counter-badge" id="lightboxCounter"></div>' +
             '</div>' +
@@ -928,7 +948,25 @@
 
     function updateLightboxImage() {
         var img = document.getElementById('lightboxMainImg');
-        if (img) img.src = lightboxImages[lightboxIndex];
+        var video = document.getElementById('lightboxMainVideo');
+        if (!img || !video) return;
+        var url = lightboxImages[lightboxIndex];
+        var isVideo = /\.(mp4|webm|ogg|mov|quicktime|avi|mkv|3gp|wmv)$/i.test(url);
+
+        if (isVideo) {
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            video.src = url;
+            video.style.display = 'block';
+            video.play().catch(function(){});
+        } else {
+            video.style.display = 'none';
+            video.pause();
+            video.removeAttribute('src');
+            img.src = url;
+            img.style.display = 'block';
+        }
+
         var counter = document.getElementById('lightboxCounter');
         if (counter) counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
     }
@@ -937,6 +975,8 @@
         var overlay = document.querySelector('.lightbox-overlay');
         if (!overlay) return;
         if (overlay.classList.contains('closing')) return;
+        var video = document.getElementById('lightboxMainVideo');
+        if (video) { video.pause(); video.removeAttribute('src'); }
         overlay.classList.remove('active');
         overlay.classList.add('closing');
         document.removeEventListener('keydown', lightboxKeydown);
@@ -956,18 +996,22 @@
         if (e) e.stopPropagation();
         if (lightboxImages.length <= 1) return;
         var img = document.getElementById('lightboxMainImg');
-        if (!img) return;
-        if (img.classList.contains('slide-out-left') || img.classList.contains('slide-out-right') || img.classList.contains('slide-in-right') || img.classList.contains('slide-in-left')) return;
-        img.classList.add('slide-out-right');
+        var video = document.getElementById('lightboxMainVideo');
+        if (!img || !video) return;
+
+        var activeEl = video.style.display !== 'none' ? video : img;
+        if (activeEl.classList.contains('slide-out-left') || activeEl.classList.contains('slide-out-right') || activeEl.classList.contains('slide-in-right') || activeEl.classList.contains('slide-in-left')) return;
+
+        activeEl.classList.add('slide-out-right');
         setTimeout(function() {
             lightboxIndex = lightboxIndex <= 0 ? lightboxImages.length - 1 : lightboxIndex - 1;
-            img.src = lightboxImages[lightboxIndex];
-            img.classList.remove('slide-out-right');
-            img.classList.add('slide-in-left');
-            var counter = document.getElementById('lightboxCounter');
-            if (counter) counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+            updateLightboxImage();
+            activeEl.classList.remove('slide-out-right');
+
+            var newActiveEl = video.style.display !== 'none' ? video : img;
+            newActiveEl.classList.add('slide-in-left');
             setTimeout(function() {
-                img.classList.remove('slide-in-left');
+                newActiveEl.classList.remove('slide-in-left');
             }, 200);
         }, 200);
     }
@@ -976,18 +1020,22 @@
         if (e) e.stopPropagation();
         if (lightboxImages.length <= 1) return;
         var img = document.getElementById('lightboxMainImg');
-        if (!img) return;
-        if (img.classList.contains('slide-out-left') || img.classList.contains('slide-out-right') || img.classList.contains('slide-in-right') || img.classList.contains('slide-in-left')) return;
-        img.classList.add('slide-out-left');
+        var video = document.getElementById('lightboxMainVideo');
+        if (!img || !video) return;
+
+        var activeEl = video.style.display !== 'none' ? video : img;
+        if (activeEl.classList.contains('slide-out-left') || activeEl.classList.contains('slide-out-right') || activeEl.classList.contains('slide-in-right') || activeEl.classList.contains('slide-in-left')) return;
+
+        activeEl.classList.add('slide-out-left');
         setTimeout(function() {
             lightboxIndex = lightboxIndex >= lightboxImages.length - 1 ? 0 : lightboxIndex + 1;
-            img.src = lightboxImages[lightboxIndex];
-            img.classList.remove('slide-out-left');
-            img.classList.add('slide-in-right');
-            var counter = document.getElementById('lightboxCounter');
-            if (counter) counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+            updateLightboxImage();
+            activeEl.classList.remove('slide-out-left');
+
+            var newActiveEl = video.style.display !== 'none' ? video : img;
+            newActiveEl.classList.add('slide-in-right');
             setTimeout(function() {
-                img.classList.remove('slide-in-right');
+                newActiveEl.classList.remove('slide-in-right');
             }, 200);
         }, 200);
     }
@@ -1096,9 +1144,9 @@
                 <textarea name="Content" class="create-post-textarea" placeholder="What's on your mind?" rows="4"></textarea>
                 <div class="create-post-preview" id="createPostPreview"></div>
                 <div class="create-post-footer">
-                    <label class="create-post-photo-btn" title="Add photos">
-                        <i class="bi bi-image"></i> Add Photos
-                        <input name="images" type="file" accept="image/*" multiple hidden onchange="previewCreateImages(this)" />
+                    <label class="create-post-photo-btn" title="Add photos/videos">
+                        <i class="bi bi-image"></i> Add Photos/Videos
+                        <input name="images" type="file" accept="image/*,video/*" multiple hidden onchange="previewCreateImages(this)" />
                     </label>
                     <button type="submit" class="btn btn-primary">Post</button>
                 </div>

@@ -44,8 +44,25 @@
             @for (int i = 0; i < images.Count; i++)
             {
                 var cls = i == 0 ? "grid-first" : "";
+                var isVideo = images[i].ImageUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".quicktime", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".3gp", StringComparison.OrdinalIgnoreCase) ||
+                              images[i].ImageUrl.EndsWith(".wmv", StringComparison.OrdinalIgnoreCase);
                 <div class="grid-cell @cls" onclick="openLightbox(@Model.PostId, @i)">
-                    <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                    @if (isVideo)
+                    {
+                        <video src="@images[i].ImageUrl" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video>
+                        <div class="video-grid-overlay" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; pointer-events: none;"><i class="bi bi-play-fill" style="font-size: 16px;"></i></div>
+                    }
+                    else
+                    {
+                        <img src="@images[i].ImageUrl" alt="" loading="lazy" />
+                    }
                     @if (i == 3 && images.Count > 4)
                     {
                         <div class="grid-overlay">+@(images.Count - 4)</div>

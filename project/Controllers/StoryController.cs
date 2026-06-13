@@ -138,6 +138,15 @@ public class StoryController : Controller
             }
         }
 
+        if (!string.IsNullOrEmpty(story.ImageUrl))
+        {
+            var filePath = Path.Combine(
+                Directory.GetCurrentDirectory(), "wwwroot",
+                story.ImageUrl.TrimStart('/'));
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+        }
+
         _context.Stories.Remove(story);
         await _context.SaveChangesAsync();
 

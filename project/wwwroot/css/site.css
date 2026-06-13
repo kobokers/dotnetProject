@@ -3578,8 +3578,9 @@ a:hover {
 /* ─── Full-Screen Text Story Editor ─── */
 .story-create-step--fullscreen {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 0 16px;
 }
 
 .text-story-form {
@@ -3588,9 +3589,10 @@ a:hover {
 
 .text-story-editor {
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: 1fr 450px;
   gap: 40px;
-  align-items: stretch;
+  align-items: start;
+  padding: 20px 0;
 }
 
 .text-story-sidebar {
@@ -3601,8 +3603,9 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 180px);
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .text-story-sidebar::-webkit-scrollbar {
@@ -3718,10 +3721,10 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
+  background: transparent;
   border-radius: var(--radius-lg);
-  padding: 40px;
-  min-height: 600px;
+  padding: 0;
+  min-height: auto;
 }
 
 .text-story-preview-container {
@@ -3803,8 +3806,7 @@ a:hover {
   
   .text-story-preview-area {
     order: 1;
-    padding: 24px;
-    min-height: 400px;
+    padding: 24px 0;
   }
   
   .text-story-preview-container {
@@ -3835,8 +3837,7 @@ a:hover {
   }
   
   .text-story-preview-area {
-    padding: 16px;
-    min-height: 300px;
+    padding: 16px 0;
   }
   
   .text-story-preview-container {

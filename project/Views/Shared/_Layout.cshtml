@@ -70,7 +70,7 @@
                     <a asp-controller="Bookmark" asp-action="Index" class="sidebar-nav-item active-check" data-active="Bookmark,Index">
                         <i class="bi bi-bookmark"></i><span>Bookmarks</span>
                     </a>
-</nav>
+                </nav>
                 <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)" style="position:relative;">
                     <div class="sidebar-avatar-wrap">
                         <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
@@ -124,21 +124,39 @@
                 <a asp-controller="Message" asp-action="Index" class="active-check" data-active="Message,Index">
                     <i class="bi bi-chat"></i><span>Messages</span>
                 </a>
-<a href="javascript:void(0)" onclick="toggleMobileNavMenu(event)" class="active-check" id="mobileMenuBtn">
-                        <i class="bi bi-three-dots"></i><span>More</span>
-                    </a>
-</nav>
-                <div id="mobileNavMenu">
-                    <div style="padding: 8px 0;">
-                        <a asp-controller="Account" asp-action="Profile" class="avatar-menu-item"><i class="bi bi-person-circle"></i>Profile</a>
-                        <a asp-controller="Settings" asp-action="Index" class="avatar-menu-item"><i class="bi bi-gear"></i>Settings</a>
-                        <a asp-controller="Bookmark" asp-action="Index" class="avatar-menu-item"><i class="bi bi-bookmark"></i>Bookmarks</a>
-                    </div>
-                </div>
-                <a href="javascript:void(0)" onclick="openCreatePostModal()" class="create-fab">
+                <a href="javascript:void(0)" onclick="toggleMoreSheet(event)" class="active-check" data-active="Bookmark,Index">
+                    <i class="bi bi-three-dots"></i><span>More</span>
+                </a>
+            </nav>
+            <a href="javascript:void(0)" onclick="openCreatePostModal()" class="create-fab">
                 <i class="bi bi-plus-lg"></i>
             </a>
         }
+    </div>
+
+    <!-- More Bottom Sheet -->
+    <div class="more-sheet-overlay" id="moreSheetOverlay" onclick="closeMoreSheet()">
+        <div class="more-sheet" onclick="event.stopPropagation()">
+            <div class="more-sheet-handle"></div>
+            <a asp-controller="Account" asp-action="Profile" class="more-sheet-item">
+                <i class="bi bi-person-circle"></i> Profile
+            </a>
+            <a asp-controller="Settings" asp-action="Index" class="more-sheet-item">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+            <a asp-controller="Bookmark" asp-action="Index" class="more-sheet-item">
+                <i class="bi bi-bookmark"></i> Saved
+            </a>
+            <a asp-controller="Notification" asp-action="Index" class="more-sheet-item">
+                <i class="bi bi-bell"></i> Notifications
+            </a>
+            <hr style="border-color: var(--border-color); margin: 4px 0;">
+            <form asp-controller="Account" asp-action="Logout" method="post" style="margin: 0;">
+                <button type="submit" class="more-sheet-item more-sheet-item--danger">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- Create Post Modal Overlay (Global) -->
@@ -203,7 +221,7 @@
     </div>
 
     <script>
-window.toggleAvatarMenu = function(e) {
+        window.toggleAvatarMenu = function(e) {
             e.stopPropagation();
             var menu = document.getElementById('avatarPopupMenu');
             if (!menu) return;
@@ -219,47 +237,10 @@ window.toggleAvatarMenu = function(e) {
             menu.classList.add('open');
         };
 
-        window.toggleMobileNavMenu = function(e) {
-            e.stopPropagation();
-            var menu = document.getElementById('mobileNavMenu');
-            if (!menu) return;
-            
-            var isOpen = menu.classList.contains('open');
-            var backdrop = document.getElementById('mobileNavBackdrop');
-            
-            if (isOpen) {
-                menu.classList.remove('open');
-                if (backdrop) backdrop.classList.remove('open');
-                document.body.style.overflow = '';
-                return;
-            }
-            
-            // Create backdrop if it doesn't exist
-            if (!backdrop) {
-                backdrop = document.createElement('div');
-                backdrop.id = 'mobileNavBackdrop';
-                backdrop.className = 'mobile-nav-backdrop';
-                backdrop.onclick = function() {
-                    menu.classList.remove('open');
-                    backdrop.classList.remove('open');
-                    document.body.style.overflow = '';
-                };
-                document.body.appendChild(backdrop);
-            }
-            
-            menu.classList.add('open');
-            backdrop.classList.add('open');
-            document.body.style.overflow = 'hidden';
-        };
-
         document.addEventListener('click', function(e) {
             var menu = document.getElementById('avatarPopupMenu');
             if (menu && !e.target.closest('#sidebarUserBtn')) {
                 menu.classList.remove('open');
-            }
-            var mobile = document.getElementById('mobileNavMenu');
-            if (mobile && !e.target.closest('#mobileMenuBtn')) {
-                mobile.classList.remove('open');
             }
         });
 
@@ -318,6 +299,21 @@ window.toggleAvatarMenu = function(e) {
             if (!overlay || !overlay.classList.contains('active')) return;
             if (e.target === overlay) closeCreatePostModal();
         });
+
+        // More Bottom Sheet
+        window.toggleMoreSheet = function(e) {
+            e.stopPropagation();
+            var overlay = document.getElementById('moreSheetOverlay');
+            if (!overlay) return;
+            overlay.classList.toggle('active');
+            document.body.style.overflow = overlay.classList.contains('active') ? 'hidden' : '';
+        };
+        window.closeMoreSheet = function() {
+            var overlay = document.getElementById('moreSheetOverlay');
+            if (!overlay) return;
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        };
 
         // Create post form submission (AJAX)
         document.addEventListener('submit', function(e) {

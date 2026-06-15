@@ -9,6 +9,8 @@
     var likeCount = await AppDbContext.Likes.CountAsync(l => l.PostId == Model.PostId);
     var commentCount = await AppDbContext.Comments.CountAsync(c => c.PostId == Model.PostId);
     var isLiked = currentUser != null && await AppDbContext.Likes.AnyAsync(l => l.PostId == Model.PostId && l.UserId == currentUser.Id);
+    var isBookmarked = currentUser != null && await AppDbContext.Bookmarks
+        .AnyAsync(b => b.PostId == Model.PostId && b.UserId == currentUser.Id);
 }
 <div class="post-card" data-post-id="@Model.PostId">
     <div class="post-card-header">
@@ -86,6 +88,10 @@
                     <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")"></i> Like
                 </button>
             </form>
+            <button type="button" class="post-action-btn @(isBookmarked ? "bookmarked" : "")"
+                    onclick="toggleBookmark(@Model.PostId, this)" aria-label="Bookmark">
+                <i class="bi @(isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+            </button>
         }
         <button type="button" class="post-action-btn" onclick="openPostModal(@Model.PostId)">
             <i class="bi bi-chat-dots"></i> Comment

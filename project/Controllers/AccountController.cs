@@ -29,11 +29,24 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(string email, string password, string displayName)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             ModelState.AddModelError("", "Email and password are required.");
+            return View();
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            ModelState.AddModelError("", "Invalid email format.");
+            return View();
+        }
+
+        if (password.Length < 8)
+        {
+            ModelState.AddModelError("", "Password must be at least 8 characters.");
             return View();
         }
 
@@ -66,6 +79,7 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string email, string password)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -74,7 +88,13 @@ public class AccountController : Controller
             return View();
         }
 
-        var result = await _signInManager.PasswordSignInAsync(email, password, false, lockoutOnFailure: false);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            ModelState.AddModelError("", "Invalid email format.");
+            return View();
+        }
+
+        var result = await _signInManager.PasswordSignInAsync(email, password, false, lockoutOnFailure: true);
         if (result.Succeeded)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -84,6 +104,12 @@ public class AccountController : Controller
                 await _userManager.UpdateAsync(user);
             }
             return RedirectToAction("Index", "Home");
+        }
+
+        if (result.IsLockedOut)
+        {
+            ModelState.AddModelError("", "Account locked. Too many failed attempts. Try again in 15 minutes.");
+            return View();
         }
 
         ModelState.AddModelError("", "Invalid login attempt.");
@@ -131,8 +157,18 @@ public class AccountController : Controller
         user.Bio = bio;
         user.Location = location;
 
+        var allowedImageTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
         if (profilePhoto != null && profilePhoto.Length > 0)
         {
+            var ext = Path.GetExtension(profilePhoto.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(ext) || !allowedImageTypes.Contains(profilePhoto.ContentType))
+            {
+                ModelState.AddModelError("", "Profile photo must be a JPG, PNG, GIF, or WebP image.");
+                return View(user);
+            }
+
             var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(profilePhoto.FileName)}";
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles", fileName);
 
@@ -146,6 +182,13 @@ public class AccountController : Controller
 
         if (coverPhotoFile != null && coverPhotoFile.Length > 0)
         {
+            var ext = Path.GetExtension(coverPhotoFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(ext) || !allowedImageTypes.Contains(coverPhotoFile.ContentType))
+            {
+                ModelState.AddModelError("", "Cover photo must be a JPG, PNG, GIF, or WebP image.");
+                return View(user);
+            }
+
             var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(coverPhotoFile.FileName)}";
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles", fileName);
 
@@ -180,6 +223,33 @@ public class AccountController : Controller
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
+
+        _context.FriendRequests.RemoveRange(
+            await _context.FriendRequests
+                .Where(fr => fr.SenderId == user.Id || fr.ReceiverId == user.Id)
+                .ToListAsync());
+
+        _context.Comments.RemoveRange(
+            await _context.Comments
+                .Where(c => c.UserId == user.Id)
+                .ToListAsync());
+
+        _context.Likes.RemoveRange(
+            await _context.Likes
+                .Where(l => l.UserId == user.Id)
+                .ToListAsync());
+
+        _context.Messages.RemoveRange(
+            await _context.Messages
+                .Where(m => m.SenderId == user.Id || m.ReceiverId == user.Id)
+                .ToListAsync());
+
+        _context.Notifications.RemoveRange(
+            await _context.Notifications
+                .Where(n => n.UserId == user.Id || n.FromUserId == user.Id)
+                .ToListAsync());
+
+        await _context.SaveChangesAsync();
 
         await _signInManager.SignOutAsync();
         await _userManager.DeleteAsync(user);

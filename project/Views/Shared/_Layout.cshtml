@@ -145,7 +145,7 @@
                 <i class="bi bi-gear"></i> Settings
             </a>
             <a asp-controller="Bookmark" asp-action="Index" class="more-sheet-item">
-                <i class="bi bi-bookmark"></i> Saved
+                <i class="bi bi-bookmark"></i> Bookmarks
             </a>
             <a asp-controller="Notification" asp-action="Index" class="more-sheet-item">
                 <i class="bi bi-bell"></i> Notifications
@@ -410,6 +410,25 @@
                 }
             }
             input.files = dt.files;
+        };
+
+        window.toggleBookmark = function(postId, btn) {
+            fetch('/Bookmark/ToggleBookmark?postId=' + postId, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.success) {
+                    var icon = btn.querySelector('i');
+                    var isBookmarked = data.action === 'added';
+                    btn.classList.toggle('bookmarked', isBookmarked);
+                    icon.className = 'bi ' + (isBookmarked ? 'bi-bookmark-fill' : 'bi-bookmark');
+                    showToast(isBookmarked ? 'Saved' : 'Removed from saved');
+                } else {
+                    showToast('Failed to update bookmark');
+                }
+            }).catch(function() {
+                showToast('Failed to update bookmark');
+            });
         };
     </script>
 </body>

@@ -15,11 +15,16 @@
         .ToListAsync();
 
     var likedPostIds = new HashSet<int>();
+    var bookmarkedPostIds = new HashSet<int>();
     if (currentUser != null)
     {
         likedPostIds = (await AppDbContext.Likes
             .Where(l => l.UserId == currentUser.Id)
             .Select(l => l.PostId)
+            .ToListAsync()).ToHashSet();
+        bookmarkedPostIds = (await AppDbContext.Bookmarks
+            .Where(b => b.UserId == currentUser.Id)
+            .Select(b => b.PostId)
             .ToListAsync()).ToHashSet();
     }
 }
@@ -71,6 +76,7 @@
     var likeCount = post.Likes?.Count ?? await AppDbContext.Likes.CountAsync(l => l.PostId == post.PostId);
     var commentCount = post.Comments?.Count ?? await AppDbContext.Comments.CountAsync(c => c.PostId == post.PostId);
     var isLiked = likedPostIds.Contains(post.PostId);
+    var isBookmarked = bookmarkedPostIds.Contains(post.PostId);
 
     <div class="post-card" data-post-id="@post.PostId">
         <div class="post-card-header">
@@ -148,6 +154,13 @@
                         <i class="bi @(isLiked ? "bi-heart-fill" : "bi-heart")"></i> Like
                     </button>
                 </form>
+            }
+            @if (currentUser != null)
+            {
+                <button type="button" class="post-action-btn @(isBookmarked ? "bookmarked" : "")"
+                        onclick="toggleBookmark(@post.PostId, this)" aria-label="Bookmark">
+                    <i class="bi @(isBookmarked ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+                </button>
             }
             <button type="button" class="post-action-btn" onclick="openPostModal(@post.PostId)">
                 <i class="bi bi-chat-dots"></i> Comment

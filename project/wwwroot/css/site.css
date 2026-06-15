@@ -522,29 +522,12 @@ input::placeholder, textarea::placeholder, select::placeholder {
 .landing-title img,
 .mockup-header img,
 .site-logo img,
-.auth-logo img,
 .logo-icon {
   width: 40px;
   height: 40px;
   border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
-}
-
-.auth-logo {
-  text-align: center;
-  font-size: 24px;
-  font-weight: 700;
-  background: var(--gradient-accent);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 4px;
-  letter-spacing: -0.5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
 }
 
 
@@ -556,7 +539,6 @@ input::placeholder, textarea::placeholder, select::placeholder {
 .landing-title img,
 .mockup-header img,
 .site-logo img,
-.auth-logo img,
 .logo-icon {
   width: 40px;
   height: 40px;
@@ -3618,10 +3600,6 @@ textarea.form-input {
   text-align: center;
   font-size: 24px;
   font-weight: 700;
-  background: var(--gradient-accent);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   margin-bottom: 4px;
   letter-spacing: -0.5px;
   display: flex;
@@ -3630,13 +3608,17 @@ textarea.form-input {
   gap: 10px;
 }
 
-.auth-logo::before {
-  content: '';
-  display: inline-block;
-  width: 32px;
-  height: 32px;
-  background: var(--accent);
-  border-radius: var(--radius-md);
+.auth-logo span {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-logo img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
 }
 
 .auth-subtitle {
@@ -4535,6 +4517,10 @@ a:hover {
 
   .bottom-nav i {
     font-size: 22px;
+  }
+
+  .settings-section {
+    padding-bottom: 80px;
   }
 
   .friend-grid {

@@ -73,7 +73,14 @@
                 </nav>
                 <div class="sidebar-user" id="sidebarUserBtn" onclick="toggleAvatarMenu(event)" style="position:relative;">
                     <div class="sidebar-avatar-wrap">
-                        <img src="@(currentUser?.ProfilePhoto != null ? currentUser.ProfilePhoto : "/images/default-avatar.png")" class="avatar avatar-sm" loading="lazy" />
+                        @if (!string.IsNullOrEmpty(currentUser.ProfilePhoto))
+                        {
+                            <img src="@currentUser.ProfilePhoto" alt="" class="avatar avatar-sm" />
+                        }
+                        else
+                        {
+                            <div class="avatar-circle avatar-sm" style="font-size:14px;">@(currentUser.DisplayName?[0] ?? '?')</div>
+                        }
                         <span class="sidebar-online-dot"></span>
                     </div>
                     <div class="sidebar-user-info">

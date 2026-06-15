@@ -478,17 +478,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# uploads (user media)
-wwwroot/uploads/
-
-# SQLite database if you switch
-*.db
-*.db-shm
-*.db-wal
-
-# App secrets
-appsettings.Development.json
-
 # Vim temporary swap files
 *.swp
 . v s c o d e / 
@@ -500,12 +489,8 @@ appsettings.Development.json
  . v s c o d e / 
  
  
-. v s c o d e / 
- 
- p r o j e c t / w w w r o o t / u p l o a d s / 
- 
- p r o j e c t / w w w r o o t / u p l o a d s / * * 
- 
- ! p r o j e c t / w w w r o o t / u p l o a d s / * * / . g i t k e e p 
- 
+. v s c o d e /  
+ p r o j e c t / w w w r o o t / u p l o a d s /  
+ p r o j e c t / w w w r o o t / u p l o a d s / * *  
+ ! p r o j e c t / w w w r o o t / u p l o a d s / * * / . g i t k e e p  
  

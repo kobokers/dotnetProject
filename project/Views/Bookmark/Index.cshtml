@@ -89,9 +89,14 @@ else
 <script>
     window.removeBookmark = function(postId, btn) {
         showConfirm('Remove this bookmark?', function() {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
             fetch('/Bookmark/ToggleBookmark?postId=' + postId, {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ '__RequestVerificationToken': token })
             }).then(function(resp) {
                 return resp.json();
             }).then(function(data) {

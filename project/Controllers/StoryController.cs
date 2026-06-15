@@ -28,6 +28,8 @@ public class StoryController : Controller
     }
 
     [HttpPost]
+    [RequestSizeLimit(104_857_600)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 104_857_600)]
     public async Task<IActionResult> Create(IFormFile? image, IFormFile[]? images, string? content, string? backgroundColor, string? fontStyle)
     {
         var user = await _userManager.GetUserAsync(User);

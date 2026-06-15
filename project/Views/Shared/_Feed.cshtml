@@ -430,10 +430,12 @@
                 : '<div class="avatar-circle avatar-sm" style="font-size:12px;">' + escapeHtml(data.userDisplayName.charAt(0)) + '</div>';
 
             var isOwn = data.userId === '@currentUserId';
+            var tokenHtml = '<input type="hidden" name="__RequestVerificationToken" value="' + (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '') + '" />';
             var actionsHtml = isOwn
                 ? '<div class="comment-actions">' +
                     '<button type="button" class="btn-icon edit-comment" data-comment-id="' + data.commentId + '" title="Edit"><i class="bi bi-pencil" style="font-size:14px;"></i></button>' +
                     '<form method="post" action="/Comment/Delete/' + data.commentId + '" class="d-inline">' +
+                        tokenHtml +
                         '<button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>' +
                     '</form>' +
                 '</div>'
@@ -507,13 +509,14 @@
         if (!commentId) return;
         var textEl = item.querySelector('.comment-text');
 
+        var editToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
         fetch('/Comment/Edit/' + commentId, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: 'content=' + encodeURIComponent(content)
+            body: 'content=' + encodeURIComponent(content) + '&__RequestVerificationToken=' + encodeURIComponent(editToken)
         }).then(function(resp) {
             return resp.json();
         }).then(function(data) {
@@ -618,10 +621,11 @@
     // Delete existing image via AJAX
     window.deleteEditImage = function(btn, imageId) {
         showConfirm('Remove this image?', function() {
+            var delImgToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
             fetch('/Post/DeleteImage', {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'imageId=' + imageId
+                body: 'imageId=' + imageId + '&__RequestVerificationToken=' + encodeURIComponent(delImgToken)
             }).then(function(resp) {
                 return resp.json();
             }).then(function(data) {
@@ -791,10 +795,12 @@
                         ? '<img src="' + escapeHtml(c.authorPhoto) + '" alt="" class="avatar avatar-sm" />'
                         : '<div class="avatar-circle avatar-sm" style="font-size:12px;">' + escapeHtml(c.authorName.charAt(0)) + '</div>';
                     var isOwn = c.authorId === '@currentUserId';
+                    var tokenHtml = '<input type="hidden" name="__RequestVerificationToken" value="' + (document.querySelector('input[name="__RequestVerificationToken"]')?.value || '') + '" />';
                     var actionsHtml = isOwn
                         ? '<div class="comment-actions">' +
                             '<button type="button" class="btn-icon edit-comment" data-comment-id="' + c.commentId + '" title="Edit"><i class="bi bi-pencil" style="font-size:14px;"></i></button>' +
                             '<form method="post" action="/Comment/Delete/' + c.commentId + '" class="d-inline">' +
+                                tokenHtml +
                                 '<button type="submit" class="btn-icon" title="Delete"><i class="bi bi-trash" style="font-size:14px;color:var(--danger);"></i></button>' +
                             '</form>' +
                         '</div>'

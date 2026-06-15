@@ -420,9 +420,14 @@
         };
 
         window.toggleBookmark = function(postId, btn) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
             fetch('/Bookmark/ToggleBookmark?postId=' + postId, {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ '__RequestVerificationToken': token })
             }).then(function(r) { return r.json(); }).then(function(data) {
                 if (data.success) {
                     var icon = btn.querySelector('i');
